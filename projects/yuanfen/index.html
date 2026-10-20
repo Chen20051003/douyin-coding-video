@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>VIBE 知识大赏 · 未见面的缘分</title>
+<style>
+  @font-face { font-family: "Noto Sans SC"; src: url("../../assets/fonts/NotoSansSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: "Noto Serif SC"; src: url("../../assets/fonts/NotoSerifSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  html, body { margin: 0; padding: 0; background: #05050e; overflow: hidden; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="../../engine/hf.js"></script>
+<script src="timing.js"></script>
+<script>
+const W = 1920, H = 1080, DUR = window.TIMING.duration;
+const L = window.TIMING.lines;
+const BEAT = 60 / 104;
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+const GOLD = "#E8C07A", INK = "#F2F0FA", MUTED = "#8A8AA0", CYAN = "#7FD6FF", RED = "#FF7B6B";
+const SERIF = HF.SERIF, SANS = HF.SANS, MONO = HF.MONO;
+
+const S = {
+  title: [0, 4.0],
+  hook: [4.0, L[2].start],
+  question: [L[2].start, L[4].start],
+  answer: [L[4].start, L[5].start],
+  light: [L[5].start, L[9].start],
+  distance: [L[9].start, L[12].start],
+  sync: [L[12].start, L[15].start],
+  line: [L[15].start, L[18].start],
+  outro: [L[18].start, DUR]
+};
+
+const CHAPTERS = {
+  title: "00 · 未见面 / UNSEEN",
+  hook: "00 · 未见面 / UNSEEN",
+  question: "01 · 地点 / A PLACE",
+  answer: "01 · 地点 / A PLACE",
+  light: "02 · 光 / THE LIGHT",
+  distance: "03 · 距离 / DISTANCE",
+  sync: "04 · 同频 / RESONANCE",
+  line: "05 · 线 / THE LINE",
+  outro: "06 · 致意 / TO YOU"
+};
+
+const STARS = HF.stars(200, 77);
+const MAP = (() => {
+  const r = HF.rng(404);
+  const a = [];
+  for (let i = 0; i < 72; i++) {
+    a.push({ x: 120 + r() * (W - 240), y: 180 + r() * (H - 380), s: 1 + r() * 2.2, p: r() * 6.28 });
+  }
+  return a;
+})();
+const BRAIN_L = (() => {
+  const r = HF.rng(12);
+  const a = [];
+  for (let i = 0; i < 26; i++) {
+    const ang = r() * Math.PI * 2, rad = 20 + r() * 105;
+    a.push({ x: Math.cos(ang) * rad * 0.9, y: Math.sin(ang) * rad, s: 1.5 + r() * 2.5, p: r() * 6.28 });
+  }
+  return a;
+})();
+const BRAIN_R = (() => {
+  const r = HF.rng(13);
+  const a = [];
+  for (let i = 0; i < 26; i++) {
+    const ang = r() * Math.PI * 2, rad = 20 + r() * 105;
+    a.push({ x: Math.cos(ang) * rad * 0.9, y: Math.sin(ang) * rad, s: 1.5 + r() * 2.5, p: r() * 6.28 });
+  }
+  return a;
+})();
+
+function sceneAt(t) {
+  for (const k of Object.keys(S)) {
+    if (t >= S[k][0] && t < S[k][1]) return k;
+  }
+  return "outro";
+}
+function pulse(t) {
+  return Math.exp(-((t / BEAT) % 1) * 5);
+}
+
+function drawBG(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#05050E");
+  g.addColorStop(0.55, "#0A0A1C");
+  g.addColorStop(1, "#05050E");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  const k = pulse(t);
+  const glow = ctx.createRadialGradient(W / 2, 520, 60, W / 2, 520, 900);
+  glow.addColorStop(0, `rgba(70,80,150,${0.16 + 0.06 * k})`);
+  glow.addColorStop(0.6, "rgba(30,40,90,0.08)");
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  HF.drawStars(ctx, STARS, t, 0.45);
+  for (const m of MAP) {
+    const tw = 0.35 + 0.4 * Math.sin(t * 0.9 + m.p);
+    ctx.globalAlpha = 0.10 + 0.08 * tw;
+    ctx.fillStyle = "#A8B8E8";
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  const by = ((t * 20) % (H + 360)) - 180;
+  const band = ctx.createLinearGradient(0, by - 180, 0, by + 180);
+  band.addColorStop(0, "rgba(120,140,220,0)");
+  band.addColorStop(0.5, "rgba(120,140,220,0.03)");
+  band.addColorStop(1, "rgba(120,140,220,0)");
+  ctx.fillStyle = band;
+  ctx.fillRect(0, by - 180, W, 360);
+}
+
+function drawPin(x, y, col, label, alpha, scale) {
+  const s = scale == null ? 1 : scale;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.arc(x, y, 26 * s, 0, Math.PI * 2);
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x, y, 8 * s, 0, Math.PI * 2);
+  ctx.fillStyle = col;
+  ctx.fill();
+  const g = ctx.createRadialGradient(x, y, 2, x, y, 70 * s);
+  g.addColorStop(0, col.replace(")", ",0.25)").replace("rgb", "rgba"));
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(x - 70 * s, y - 70 * s, 140 * s, 140 * s);
+  if (label) HF.text(ctx, label, x, y + 54 * s, { size: 14, color: col, align: "center", letterSpacing: 3, family: MONO });
+  ctx.restore();
+}
+
+function drawChat(x, y, text, side, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  HF.setFont(ctx, 26, 600, SANS);
+  const w = ctx.measureText(text).width + 54;
+  const h = 66;
+  const bx = side === "right" ? x - w : x;
+  HF.panel(ctx, bx, y, w, h, 18, side === "right" ? "rgba(127,214,255,0.12)" : "rgba(232,192,122,0.12)", side === "right" ? "rgba(127,214,255,0.5)" : "rgba(232,192,122,0.5)", 1);
+  HF.text(ctx, text, bx + 27, y + 43, { size: 26, weight: 600, color: INK });
+  ctx.restore();
+}
+
+function drawBrain(cx, cy, sc, col, nodes, t, alpha, anti) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx, cy);
+  ctx.scale(sc, sc);
+  const beat = pulse(t);
+  for (let i = 0; i < nodes.length; i++) {
+    const a = nodes[i];
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d < 72) {
+        ctx.strokeStyle = `rgba(150,170,230,${0.10 + 0.06 * beat})`;
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    }
+  }
+  for (const n of nodes) {
+    const tw = 0.55 + 0.45 * Math.sin(t * 2.2 + n.p);
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.s * (1 + 0.3 * tw), 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.globalAlpha = alpha * (0.45 + 0.55 * tw);
+    ctx.fill();
+    ctx.globalAlpha = alpha;
+  }
+  const g = ctx.createRadialGradient(0, 0, 10, 0, 0, 120);
+  g.addColorStop(0, "rgba(120,140,220,0.12)");
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(-120, -120, 240, 240);
+  ctx.restore();
+}
+
+function drawTitleCard(t) {
+  const u = t;
+  const a = HF.smoothstep(0.1, 0.9, u) * (1 - HF.smoothstep(3.7, 4.0, u));
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "VIBE 知识大赏", W / 2, 380, { size: 18, color: GOLD, align: "center", letterSpacing: 12 });
+  const grow = HF.easeOutCubic(HF.clamp(u / 1.2, 0, 1));
+  ctx.strokeStyle = "rgba(232,192,122,0.45)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - 260 * grow, 414);
+  ctx.lineTo(W / 2 + 260 * grow, 414);
+  ctx.stroke();
+
+  HF.text(ctx, "《未见面的缘分》", W / 2, 570, { size: 112, weight: 900, color: GOLD, align: "center", family: SERIF });
+  HF.text(ctx, "距离，从来不是友谊的悬崖", W / 2, 650, { size: 38, weight: 500, color: INK, align: "center" });
+  HF.text(ctx, "Fate Beyond the Screen", W / 2, 700, { size: 24, color: MUTED, align: "center", family: SERIF, italic: true });
+
+  const d = 0.5 + 0.5 * Math.sin(t * 1.2);
+  ctx.globalAlpha = a * 0.55;
+  HF.text(ctx, "A FILM ABOUT FRIENDS WE HAVE NOT MET", W / 2, 860, { size: 13, color: MUTED, align: "center", letterSpacing: 5 });
+  ctx.restore();
+}
+
+function drawHook(t) {
+  const u = t - 4.0;
+  const a = HF.smoothstep(0, 0.6, u);
+  const x1 = 590, x2 = 1330, y = 540;
+  const k = pulse(t);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  ctx.setLineDash([5, 12]);
+  ctx.strokeStyle = "rgba(180,190,230,0.18)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y);
+  ctx.lineTo(x2, y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  drawPin(x1, y, GOLD, "YOU", a, 1);
+  drawPin(x2, y, CYAN, "THEM", a, 1);
+  HF.text(ctx, "1,842 km", W / 2, y - 46, { size: 16, color: "rgba(180,190,230,0.55)", align: "center", family: MONO, letterSpacing: 2 });
+
+  drawChat(330, 680, "在吗？", "left", a * HF.smoothstep(1.0, 1.6, u));
+  drawChat(1330, 760, "在。", "right", a * HF.smoothstep(2.0, 2.6, u));
+
+  if (u > 2.4) {
+    const s = HF.smoothstep(2.4, 3.6, u);
+    ctx.globalAlpha = a * s;
+    ctx.strokeStyle = `rgba(232,192,122,${0.65 + 0.3 * k})`;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = a * 0.6;
+  HF.text(ctx, "SAME NIGHT · DIFFERENT TIME ZONES", W / 2, 860, { size: 12, color: MUTED, align: "center", letterSpacing: 4 });
+  ctx.restore();
+}
+
+function drawQuestion(t) {
+  const u = t - S.question[0];
+  const a = HF.smoothstep(0, 0.6, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "?", W / 2, 540, { size: 300, weight: 900, color: "rgba(232,192,122,0.12)", align: "center", family: SERIF });
+  drawPin(520, 520, GOLD, "A PLACE", a * 0.9, 1.2);
+  drawPin(1400, 520, CYAN, "ANOTHER", a * 0.9, 1.2);
+  HF.text(ctx, "缘分，总该有一个地点吗？", W / 2, 760, { size: 34, weight: 500, color: "rgba(242,240,250,0.75)", align: "center" });
+  HF.text(ctx, "DOES FATE NEED AN ADDRESS?", W / 2, 806, { size: 13, color: MUTED, align: "center", letterSpacing: 4 });
+  ctx.restore();
+}
+
+function drawAnswer(t) {
+  const u = t - S.answer[0];
+  const a = HF.smoothstep(0, 0.5, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.strokeStyle = "rgba(232,192,122,0.75)";
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(520, 450);
+  ctx.lineTo(1400, 450);
+  ctx.stroke();
+  HF.text(ctx, "不。", W / 2, 620, { size: 150, weight: 900, color: GOLD, align: "center", family: SERIF, alpha: a });
+  HF.text(ctx, "它从来不只是同一个地点。", W / 2, 740, { size: 34, color: "rgba(242,240,250,0.72)", align: "center" });
+  ctx.restore();
+}
+
+function drawLight(t) {
+  const u = t - S.light[0];
+  const a = HF.smoothstep(0, 0.6, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  const mx = 220, my = 330, mw = 760, mh = 450;
+  const fadeScreen = 1 - 0.7 * HF.smoothstep(6.5, 8.0, u);
+  ctx.save();
+  ctx.globalAlpha = a * fadeScreen;
+  HF.panel(ctx, mx, my, mw, mh, 14, "rgba(8,9,20,0.94)", "rgba(140,150,210,0.25)", 1.2);
+  HF.panel(ctx, mx + 18, my + 18, mw - 36, mh - 36, 8, "rgba(20,24,52,0.9)", "rgba(127,214,255,0.2)", 1);
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = `rgba(127,214,255,${0.10 + 0.04 * i})`;
+    ctx.fillRect(mx + 50, my + 60 + i * 54, 420 - i * 26, 8);
+  }
+  HF.text(ctx, "message", mx + 50, my + 400, { size: 14, color: CYAN, family: MONO, letterSpacing: 2 });
+  ctx.restore();
+  ctx.globalAlpha = a;
+
+  const beam = ctx.createLinearGradient(mx + mw, my + 120, 1460, 640);
+  beam.addColorStop(0, "rgba(127,214,255,0.22)");
+  beam.addColorStop(1, "rgba(127,214,255,0)");
+  ctx.fillStyle = beam;
+  ctx.beginPath();
+  ctx.moveTo(mx + mw, my + 80);
+  ctx.lineTo(1460, 430);
+  ctx.lineTo(1460, 840);
+  ctx.lineTo(mx + mw, my + mh - 60);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(1510, 620, 54, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(242,240,250,0.10)";
+  ctx.fill();
+  ctx.fillStyle = "rgba(242,240,250,0.18)";
+  ctx.beginPath();
+  ctx.ellipse(1510, 790, 150, 90, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  drawChat(900, 470, "今天好累。", "left", a * HF.smoothstep(1.6, 2.2, u));
+  drawChat(1210, 780, "我在。", "right", a * HF.smoothstep(2.6, 3.2, u));
+
+  if (u > 7.0) {
+    const s = HF.smoothstep(7.0, 8.4, u);
+    ctx.globalAlpha = a * s;
+    drawBrain(470, 620, 1.0, GOLD, BRAIN_L, t, a * s, false);
+    drawBrain(1280, 620, 1.0, CYAN, BRAIN_R, t, a * s, true);
+    ctx.strokeStyle = "rgba(232,192,122,0.3)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(590, 620 - 40 + i * 40);
+      ctx.bezierCurveTo(800, 520 + i * 40, 1000, 720 - i * 40, 1160, 620 - 40 + i * 40);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawDistance(t) {
+  const u = t - S.distance[0];
+  const a = HF.smoothstep(0, 0.6, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  const top = 600, bottom = 820;
+  ctx.fillStyle = "rgba(30,36,70,0.55)";
+  ctx.fillRect(140, top, 520, bottom - top);
+  ctx.fillRect(1260, top, 520, bottom - top);
+  ctx.strokeStyle = "rgba(140,150,210,0.25)";
+  ctx.strokeRect(140, top, 520, bottom - top);
+  ctx.strokeRect(1260, top, 520, bottom - top);
+  HF.text(ctx, "HERE", 400, top - 26, { size: 14, color: GOLD, align: "center", letterSpacing: 4 });
+  HF.text(ctx, "THERE", 1520, top - 26, { size: 14, color: CYAN, align: "center", letterSpacing: 4 });
+
+  const lit = HF.smoothstep(4.5, 6.5, u);
+  ctx.setLineDash(lit > 0.05 ? [] : [5, 12]);
+  ctx.strokeStyle = lit > 0.05 ? `rgba(232,192,122,${0.45 + 0.4 * lit})` : "rgba(180,190,230,0.22)";
+  ctx.lineWidth = lit > 0.05 ? 2.4 : 1.2;
+  ctx.beginPath();
+  ctx.moveTo(660, 710);
+  ctx.lineTo(1260, 710);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  HF.text(ctx, "不是悬崖", W / 2, 400, { size: 54, weight: 900, color: INK, align: "center", family: SERIF });
+  HF.text(ctx, "NOT A CLIFF", W / 2, 446, { size: 14, color: MUTED, align: "center", letterSpacing: 6 });
+
+  if (lit > 0.1) {
+    const x = HF.lerp(660, 1260, lit);
+    const g = ctx.createRadialGradient(x, 710, 0, x, 710, 70);
+    g.addColorStop(0, "rgba(232,192,122,0.4)");
+    g.addColorStop(1, "rgba(232,192,122,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 70, 710 - 70, 140, 140);
+    ctx.beginPath();
+    ctx.arc(x, 710, 6, 0, Math.PI * 2);
+    ctx.fillStyle = GOLD;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawSync(t) {
+  const u = t - S.sync[0];
+  const a = HF.smoothstep(0, 0.6, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  drawBrain(520, 600, 1.35, GOLD, BRAIN_L, t, a, false);
+  drawBrain(1400, 600, 1.35, CYAN, BRAIN_R, t, a, true);
+
+  for (let i = 0; i < 4; i++) {
+    const p = (t * 0.32 + i * 0.25) % 1;
+    const x = HF.lerp(700, 1220, p);
+    const y = 600 + Math.sin(p * Math.PI * 2 + i) * 90;
+    ctx.beginPath();
+    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = i % 2 ? CYAN : GOLD;
+    ctx.globalAlpha = a * (0.35 + 0.5 * Math.sin(p * Math.PI));
+    ctx.fill();
+  }
+  ctx.globalAlpha = a;
+
+  const words = [
+    ["同一首歌", 720, 350, GOLD],
+    ["同一场失眠", 960, 300, INK],
+    ["同一个笑话", 860, 430, CYAN]
+  ];
+  words.forEach((w, i) => {
+    const on = HF.clamp((u - 1.2 - i * 1.1) / 0.6, 0, 1);
+    HF.text(ctx, w[0], w[1], w[2], { size: 26, weight: 600, color: w[3], align: "center", alpha: a * on });
+  });
+
+  HF.text(ctx, "同频", W / 2, 760, { size: 110, weight: 900, color: "rgba(242,240,250,0.10)", align: "center", family: SERIF });
+  ctx.restore();
+}
+
+function drawLine(t) {
+  const u = t - S.line[0];
+  const a = HF.smoothstep(0, 0.6, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  const y = 600, x0 = 200, x1 = 1720;
+  const p = HF.easeInOutCubic(HF.clamp(u / 10.5, 0, 1));
+
+  ctx.strokeStyle = "rgba(140,150,210,0.18)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  ctx.lineTo(x1, y);
+  ctx.stroke();
+
+  const g = ctx.createLinearGradient(x0, 0, x0 + (x1 - x0) * p, 0);
+  g.addColorStop(0, "rgba(232,192,122,0.9)");
+  g.addColorStop(1, "rgba(127,214,255,0.9)");
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  ctx.lineTo(x0 + (x1 - x0) * p, y);
+  ctx.stroke();
+
+  for (let i = 0; i < 18; i++) {
+    const x = x0 + (i / 17) * (x1 - x0);
+    const on = p * (x1 - x0) > x - x0;
+    const tw = 0.4 + 0.6 * Math.sin(t * 2 + i);
+    ctx.beginPath();
+    ctx.arc(x, y + Math.sin(i * 1.7) * 30, on ? 4 : 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = on ? (i % 2 ? CYAN : GOLD) : "rgba(140,150,210,0.25)";
+    ctx.globalAlpha = a * (on ? 0.5 + 0.5 * tw : 0.3);
+    ctx.fill();
+  }
+  ctx.globalAlpha = a;
+
+  HF.text(ctx, "3,000 km · 0 ms", W - 90, 300, { size: 20, color: MUTED, align: "right", family: MONO, letterSpacing: 2 });
+  HF.text(ctx, "它是一条，随时能被点亮的线。", W / 2, 780, { size: 30, color: "rgba(242,240,250,0.7)", align: "center" });
+  ctx.restore();
+}
+
+function drawOutro(t) {
+  const u = t - S.outro[0];
+  const a = HF.smoothstep(0, 0.8, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "致每一个", W / 2, 430, { size: 40, color: MUTED, align: "center", letterSpacing: 4 });
+  HF.text(ctx, "未见面的朋友", W / 2, 560, { size: 92, weight: 900, color: GOLD, align: "center", family: SERIF });
+  HF.text(ctx, "TO EVERY FRIEND WE HAVE NOT MET", W / 2, 620, { size: 17, color: MUTED, align: "center", letterSpacing: 5 });
+
+  ctx.strokeStyle = "rgba(232,192,122,0.35)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - 220, 680);
+  ctx.lineTo(W / 2 + 220, 680);
+  ctx.stroke();
+
+  HF.text(ctx, "VIBE 知识大赏 ·《未见面的缘分》", W / 2, 740, { size: 20, color: "rgba(242,240,250,0.65)", align: "center", letterSpacing: 2 });
+  HF.text(ctx, "风格致敬：Vibe 知识大赏 · 本片由代码生成 · 配音由 AI 合成", W / 2, 800, { size: 13, color: "rgba(138,138,160,0.7)", align: "center" });
+  ctx.restore();
+}
+
+function drawWipe(t) {
+  const cuts = [4.0, S.hook[1], S.question[1], S.answer[1], S.light[1], S.distance[1], S.sync[1], S.line[1]];
+  for (const c of cuts) {
+    const u = t - c;
+    if (u < 0 || u > 0.5) continue;
+    const p = HF.easeInOutCubic(u / 0.5);
+    const x = HF.lerp(-80, W + 80, p);
+    const g = ctx.createLinearGradient(x - 120, 0, x + 20, 0);
+    g.addColorStop(0, "rgba(232,192,122,0)");
+    g.addColorStop(0.75, "rgba(232,192,122,0.08)");
+    g.addColorStop(1, "rgba(232,192,122,0.45)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 120, 0, 140, H);
+    ctx.fillStyle = "rgba(232,192,122,0.55)";
+    ctx.fillRect(x, 0, 2, H);
+  }
+}
+
+function activeLine(t) {
+  for (let i = 0; i < L.length; i++) {
+    if (t >= L[i].start - 0.05 && t <= L[i].end + 0.25) return L[i];
+  }
+  return null;
+}
+
+function render(t) {
+  HF.base(ctx, t, DUR);
+  drawBG(t);
+
+  const s = sceneAt(t);
+  if (s === "title") drawTitleCard(t);
+  else if (s === "hook") drawHook(t);
+  else if (s === "question") drawQuestion(t);
+  else if (s === "answer") drawAnswer(t);
+  else if (s === "light") drawLight(t);
+  else if (s === "distance") drawDistance(t);
+  else if (s === "sync") drawSync(t);
+  else if (s === "line") drawLine(t);
+  else drawOutro(t);
+
+  drawWipe(t);
+
+  HF.header(ctx, "@VIBE 知识大赏", CHAPTERS[s] || "", "A FILM ABOUT UNSEEN FRIENDS", W);
+
+  const line = activeLine(t);
+  if (line && t < L[19].start) HF.subtitle(ctx, line.cn, line.en, t, line.start, line.end + 0.25, W, H);
+
+  HF.finishFrame(ctx, t, DUR);
+}
+
+window.render = render;
+window.__ready = true;
+</script>
+</body>
+</html>

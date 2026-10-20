@@ -1,0 +1,17 @@
+out/
+qa/
+assets/fonts/
+projects/*/audio.wav
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+dist/
+
+projects/yuanfen/*.wav
+projects/yuanfen/voice/*.mp3
+projects/yuanfen/voice/*.wav
+
+tools/
+.github/workflows/

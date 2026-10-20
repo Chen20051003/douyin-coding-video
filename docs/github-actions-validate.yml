@@ -1,0 +1,19 @@
+name: validate
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install numpy scipy pillow
+      - name: Compile python
+        run: python -m py_compile engine/audio.py engine/capture.py engine/encode.py engine/video_qa.py scripts/skill_radar.py scripts/validate_assets.py
+      - name: Validate assets
+        run: python scripts/validate_assets.py

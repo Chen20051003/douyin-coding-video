@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>AI MUSIC · 代码合成</title>
+<style>
+  @font-face { font-family: "Noto Sans SC"; src: url("../../assets/fonts/NotoSansSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: "Noto Serif SC"; src: url("../../assets/fonts/NotoSerifSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  html, body { margin: 0; padding: 0; background: #06040e; overflow: hidden; }
+  canvas { display: block; width: 1080px; height: 1920px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="../../engine/hf.js"></script>
+<script src="spectrum.js"></script>
+<script>
+const W = 1080, H = 1920, DUR = 30, BPM = 96, BEAT = 60 / BPM;
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+const VIOLET = "#8B5CF6", CYAN = "#22D3EE", PINK = "#F472B6", GOLD = "#E8C07A", INK = "#F4F2FF", MUTED = "#8A8AA0";
+
+const SPEC = (window.SPECTRUM && window.SPECTRUM.frames) || [];
+const WAVE = window.WAVEFORM || [];
+const FRAMES = SPEC.length || 900;
+const BANDS = (SPEC[0] || []).length || 64;
+
+const PARTICLES = (() => {
+  const r = HF.rng(96);
+  const a = [];
+  for (let i = 0; i < 150; i++) {
+    a.push({ ang: r() * Math.PI * 2, rad: 120 + r() * 520, sp: 0.15 + r() * 0.6, size: 1 + r() * 3, ph: r() * 6.28, c: [VIOLET, CYAN, PINK, GOLD][Math.floor(r() * 4)] });
+  }
+  return a;
+})();
+
+function specAt(t) {
+  const i = HF.clamp(Math.floor(t * 30), 0, FRAMES - 1);
+  return SPEC[i] || new Array(BANDS).fill(0);
+}
+function energy(t) {
+  const s = specAt(t);
+  let e = 0;
+  for (let i = 0; i < s.length; i++) e += s[i];
+  return e / s.length;
+}
+
+function drawBG(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#080512");
+  g.addColorStop(0.5, "#0B0618");
+  g.addColorStop(1, "#05030C");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  const drop = HF.smoothstep(14.6, 15.6, t);
+  const gx = W / 2, gy = H * 0.44;
+  const rad = 700 + 120 * Math.sin(t * 0.6);
+  const glow = ctx.createRadialGradient(gx, gy, 40, gx, gy, rad);
+  glow.addColorStop(0, `rgba(${drop > 0.5 ? "244,114,182" : "139,92,246"},${0.20 + 0.10 * drop})`);
+  glow.addColorStop(0.55, `rgba(${drop > 0.5 ? "34,211,238" : "60,40,120"},0.10)`);
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = "rgba(139,92,246,0.10)";
+  ctx.lineWidth = 1;
+  for (let r = 120; r < 900; r += 120) {
+    ctx.beginPath();
+    ctx.arc(gx, gy, r + 8 * Math.sin(t + r), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function drawRing(t) {
+  const drop = HF.smoothstep(14.6, 15.8, t);
+  const base = 300 + 60 * drop + 10 * Math.sin(t * 1.4);
+  const s = specAt(t);
+  const n = s.length;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 - Math.PI / 2 + t * 0.10;
+    const v = Math.pow(s[i] || 0, 0.8);
+    const len = 30 + v * (220 + 140 * drop);
+    const r0 = base, r1 = base + len;
+    const x0 = W / 2 + Math.cos(ang) * r0, y0 = H * 0.44 + Math.sin(ang) * r0;
+    const x1 = W / 2 + Math.cos(ang) * r1, y1 = H * 0.44 + Math.sin(ang) * r1;
+    const hue = i / n;
+    ctx.strokeStyle = `rgba(${Math.round(139 + 105 * hue)},${Math.round(92 + 119 * (1 - hue))},246,${0.35 + 0.55 * v})`;
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+  }
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = `rgba(232,192,122,${0.25 + 0.35 * energy(t)})`;
+  ctx.beginPath();
+  ctx.arc(W / 2, H * 0.44, base - 14, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // inner rotating ticks
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 + t * 0.35;
+    const r0 = base - 42, r1 = base - 26;
+    ctx.strokeStyle = "rgba(244,242,255,0.22)";
+    ctx.beginPath();
+    ctx.moveTo(W / 2 + Math.cos(a) * r0, H * 0.44 + Math.sin(a) * r0);
+    ctx.lineTo(W / 2 + Math.cos(a) * r1, H * 0.44 + Math.sin(a) * r1);
+    ctx.stroke();
+  }
+}
+
+function drawParticles(t) {
+  const e = energy(t);
+  const drop = HF.smoothstep(14.6, 16, t);
+  for (const p of PARTICLES) {
+    const a = p.ang + t * p.sp * (0.4 + drop * 0.6);
+    const r = p.rad + Math.sin(t * 0.8 + p.ph) * 40 + e * 120;
+    const x = W / 2 + Math.cos(a) * r;
+    const y = H * 0.44 + Math.sin(a) * r * 0.82;
+    ctx.globalAlpha = 0.25 + 0.55 * e;
+    ctx.fillStyle = p.c;
+    ctx.beginPath();
+    ctx.arc(x, y, p.size * (1 + e * 1.4), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawWave(t) {
+  if (!WAVE.length) return;
+  const y0 = 1750, h = 70;
+  const n = WAVE.length;
+  const px = HF.clamp(t / DUR, 0, 1) * (W - 120) + 60;
+  ctx.strokeStyle = "rgba(139,92,246,0.35)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = 60 + (i / n) * (W - 120);
+    const y = y0 - WAVE[i] * h;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(244,242,255,0.16)";
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = 60 + (i / n) * (W - 120);
+    const y = y0 + WAVE[i] * h;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.fillStyle = CYAN;
+  ctx.fillRect(px - 1, y0 - h - 10, 2, h * 2 + 20);
+}
+
+function drawPrompt(t, a) {
+  const cardX = 90, cardY = 620, cw = 900, ch = 420;
+  HF.panel(ctx, cardX, cardY, cw, ch, 24, "rgba(8,6,18,0.92)", "rgba(139,92,246,0.35)", 1.4);
+  HF.text(ctx, "PROMPT.TXT", cardX + 36, cardY + 54, { size: 14, color: VIOLET, letterSpacing: 4 });
+  const text = "写一首关于代码的歌";
+  const n = Math.floor(HF.clamp(a / 0.55, 0, 1) * text.length);
+  HF.text(ctx, "> " + text.slice(0, n), cardX + 36, cardY + 160, { size: 44, weight: 700, color: INK });
+  HF.text(ctx, "96 BPM · C# MINOR · 30 SEC", cardX + 36, cardY + 230, { size: 16, color: MUTED, family: HF.MONO, letterSpacing: 2 });
+  HF.text(ctx, "⏎", cardX + cw - 80, cardY + ch - 56, { size: 52, color: CYAN, align: "center", alpha: 0.4 + 0.6 * Math.abs(Math.sin(t * 5)) });
+}
+
+function drawType(t) {
+  const e = energy(t);
+  ctx.save();
+  ctx.textAlign = "center";
+  if (t < 6) {
+    const a = HF.smoothstep(0.0, 0.6, t) * (1 - HF.smoothstep(5.2, 6.0, t));
+    ctx.globalAlpha = a;
+    HF.text(ctx, "如果代码会唱歌", W / 2, 1520, { size: 58, weight: 900, color: INK, align: "center", family: HF.SERIF });
+    HF.text(ctx, "WHAT IF CODE COULD SING?", W / 2, 1580, { size: 16, color: MUTED, align: "center", letterSpacing: 4 });
+  } else if (t < 11) {
+    const a = HF.smoothstep(6.0, 6.4, t) * (1 - HF.smoothstep(10.5, 11.0, t));
+    ctx.globalAlpha = a;
+    HF.text(ctx, "PROMPT", W / 2, 1500, { size: 120, weight: 900, color: INK, align: "center", letterSpacing: 6 });
+    HF.text(ctx, "一句话，就是编曲的起点", W / 2, 1570, { size: 26, color: "rgba(244,242,255,0.65)", align: "center" });
+    drawPrompt(t, t - 6);
+  } else if (t < 15) {
+    const a = HF.smoothstep(11.0, 11.4, t) * (1 - HF.smoothstep(14.6, 15.0, t));
+    ctx.globalAlpha = a;
+    HF.text(ctx, "CODE", W / 2, 1480, { size: 160, weight: 900, color: CYAN, align: "center", letterSpacing: 10 });
+    HF.text(ctx, "每一行，都是一个音色", W / 2, 1560, { size: 26, color: "rgba(244,242,255,0.65)", align: "center" });
+    HF.text(ctx, "osc(freq) · env(attack) · sidechain(kick)", W / 2, 1630, { size: 16, color: MUTED, align: "center", family: HF.MONO });
+  } else if (t < 24) {
+    const a = HF.smoothstep(15.0, 15.3, t) * (1 - HF.smoothstep(23.2, 24.0, t));
+    ctx.globalAlpha = a;
+    const shake = (1 - HF.smoothstep(15.0, 15.5, t)) * 10 * e;
+    HF.text(ctx, "SOUND", W / 2 + Math.sin(t * 40) * shake, 1500, { size: 170, weight: 900, color: GOLD, align: "center", letterSpacing: 8 });
+    HF.text(ctx, "DROP", W / 2, 1580, { size: 22, color: PINK, align: "center", letterSpacing: 12 });
+    HF.text(ctx, "没有采样，只有数学", W / 2, 1640, { size: 24, color: "rgba(244,242,255,0.6)", align: "center" });
+  } else {
+    const a = HF.smoothstep(24.0, 24.5, t);
+    ctx.globalAlpha = a;
+    HF.text(ctx, "AI MUSIC", W / 2, 1450, { size: 96, weight: 900, color: INK, align: "center", letterSpacing: 10 });
+    HF.text(ctx, "由代码合成 · 无采样 · 无版权曲库", W / 2, 1525, { size: 24, color: "rgba(244,242,255,0.65)", align: "center" });
+    HF.text(ctx, "96 BPM · C# MINOR · 30s", W / 2, 1580, { size: 16, color: MUTED, align: "center", family: HF.MONO, letterSpacing: 3 });
+    HF.text(ctx, "PROMPT → CODE → SOUND", W / 2, 1650, { size: 20, color: GOLD, align: "center", letterSpacing: 6 });
+  }
+  ctx.restore();
+}
+
+function drawHUD(t) {
+  HF.text(ctx, "AI MUSIC / 96 BPM", 54, 92, { size: 15, color: GOLD, letterSpacing: 3, family: HF.MONO });
+  HF.text(ctx, "PROMPT → CODE → SOUND", W - 54, 92, { size: 13, color: MUTED, align: "right", letterSpacing: 2 });
+  const p = HF.clamp(t / DUR, 0, 1);
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  ctx.fillRect(54, 120, W - 108, 3);
+  ctx.fillStyle = GOLD;
+  ctx.fillRect(54, 120, (W - 108) * p, 3);
+  HF.text(ctx, "00:" + String(Math.floor(t)).padStart(2, "0"), 54, 156, { size: 13, color: MUTED, family: HF.MONO });
+  HF.text(ctx, "00:30", W - 54, 156, { size: 13, color: MUTED, align: "right", family: HF.MONO });
+}
+
+function render(t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  drawBG(t);
+
+  const e = energy(t);
+  const shake = HF.smoothstep(14.6, 15.2, t) * (1 - HF.smoothstep(15.4, 18, t)) * 18 * e;
+  ctx.save();
+  ctx.translate(Math.sin(t * 37) * shake, Math.cos(t * 41) * shake);
+  drawWave(t);
+  drawParticles(t);
+  drawRing(t);
+  ctx.restore();
+
+  const scrim = ctx.createLinearGradient(0, 1230, 0, 1720);
+  scrim.addColorStop(0, "rgba(5,3,12,0)");
+  scrim.addColorStop(0.42, "rgba(5,3,12,0.82)");
+  scrim.addColorStop(1, "rgba(5,3,12,0.94)");
+  ctx.fillStyle = scrim;
+  ctx.fillRect(0, 1230, W, 490);
+
+  drawType(t);
+  drawHUD(t);
+  HF.grain(ctx, t, 0.055);
+  HF.vignette(ctx, W, H);
+}
+
+window.render = render;
+window.__ready = true;
+</script>
+</body>
+</html>

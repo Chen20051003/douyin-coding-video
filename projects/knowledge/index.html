@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>CODE 知识大赏 · 快，是被设计出来的</title>
+<style>
+  @font-face { font-family: "Noto Sans SC"; src: url("../../assets/fonts/NotoSansSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: "Noto Serif SC"; src: url("../../assets/fonts/NotoSerifSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  html, body { margin: 0; padding: 0; background: #05050e; overflow: hidden; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="../../engine/hf.js"></script>
+<script>
+const W = 1920, H = 1080, DUR = 126;
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+const GOLD = HF.GOLD, INK = HF.INK, MUTED = HF.MUTED, RED = HF.RED, GREEN = HF.GREEN, CYAN = HF.CYAN;
+const C = { kw: "#C792EA", fn: "#82AAFF", str: "#C3E88D", num: "#F78C6C", com: "#5C6370", ink: "#D6D6E6" };
+
+const SUBS = [
+  [0.0, 3.6, "同一句需求。", "Same prompt."],
+  [3.6, 7.2, "为什么有人 3 秒出代码？", "Why does one ship in three seconds?"],
+  [7.2, 10.8, "有人却改到凌晨。", "Another debugs until dawn."],
+  [10.8, 14.0, "差别不在模型大小。", "The difference is not model size."],
+  [20.0, 23.5, "2021，先补全一行。", "2021: it completes a line."],
+  [23.5, 27.0, "2023，读懂整个文件。", "2023: it reads the whole file."],
+  [27.0, 30.5, "2025，接管终端与仓库。", "2025: it takes the terminal."],
+  [30.5, 34.0, "2026，开始管理上下文。", "2026: it manages context."],
+  [34.0, 37.8, "第一步，先给整座城市画地图。", "Step one: map the entire city."],
+  [37.8, 41.4, "Merkle 树记住每个文件的哈希。", "A Merkle tree hashes every file."],
+  [41.4, 45.0, "只同步变动的街区。", "Only changed blocks get synced."],
+  [45.0, 48.8, "中位仓库首次可查：7.87 秒 → 0.525 秒。", "Median first query: 7.87s to 0.525s."],
+  [48.8, 52.0, "第 99 百分位：4.03 小时 → 21 秒。", "P99: 4.03 hours to 21 seconds."],
+  [52.0, 55.6, "第二步，把代码切成语法块。", "Step two: chunk code by syntax."],
+  [55.6, 59.2, "再压成向量，按距离检索。", "Embed each chunk. Search by distance."],
+  [59.2, 62.6, "改一个函数，只重算一块。", "Edit one function, re-embed one chunk."],
+  [62.6, 66.0, "第三步，先猜，再验。", "Step three: predict, then verify."],
+  [66.0, 69.5, "只回写差异，不重写全文。", "Write back only the diff."],
+  [69.5, 73.0, "于是它看起来像在思考。", "So it looks like it is thinking."],
+  [73.0, 76.6, "但真正的内存，是上下文窗口。", "But the real RAM is the context window."],
+  [76.6, 80.0, "装得下整个仓库吗？装不下。", "Can it hold the whole repo? No."],
+  [80.0, 83.6, "于是它学会遗忘。", "So it learns to forget."],
+  [83.6, 87.0, "旧对话被压缩成摘要。", "Old turns become a summary."],
+  [87.0, 90.6, "子代理各拿一小块内存。", "Subagents each hold a slice."],
+  [90.6, 94.0, "内存管理，才是隐形的战场。", "Memory management is the hidden war."],
+  [94.0, 97.6, "可是，快不等于对。", "But fast is not correct."],
+  [97.6, 101.2, "它可能自信地改错一行。", "It can confidently break a line."],
+  [101.2, 104.8, "工具越快，判断越贵。", "The faster the tool, the more judgment costs."],
+  [104.8, 108.0, "所以真正的用法是——", "So the real workflow is -"],
+  [108.0, 111.6, "把重复交给机器。", "Give repetition to the machine."],
+  [111.6, 115.0, "把判断留给自己。", "Keep judgment for yourself."],
+  [115.0, 118.0, "快，是被设计出来的。", "Speed is designed."],
+  [118.0, 121.5, "而方向，是你给的。", "Direction is yours."]
+];
+
+const CHAPTERS = [
+  [0, 14, "00 · 钩子 / THE HOOK"],
+  [14, 20, "TITLE / 片名"],
+  [20, 34, "01 · 时间轴 / TIMELINE"],
+  [34, 52, "02 · 索引 / INDEX"],
+  [52, 66, "03 · 向量 / EMBEDDINGS"],
+  [66, 73, "04 · 生成 / GENERATION"],
+  [73, 94, "05 · 内存 / CONTEXT RAM"],
+  [94, 108, "06 · 判断 / JUDGMENT"],
+  [108, 118, "07 · 落点 / TAKEAWAY"],
+  [118, 127, "REFERENCES / 参考"]
+];
+
+const STARS = HF.stars(190, 41);
+const DUST = (() => {
+  const r = HF.rng(808);
+  const a = [];
+  for (let i = 0; i < 46; i++) {
+    a.push({ x: r() * W, y: r() * H, s: 0.8 + r() * 2.2, v: 4 + r() * 14, p: r() * 6.28 });
+  }
+  return a;
+})();
+const RAIN = (() => {
+  const rand = HF.rng(77);
+  const cols = [];
+  for (let i = 0; i < 54; i++) {
+    cols.push({
+      x: (i + 0.5) * (W / 54) + (rand() - 0.5) * 18,
+      y: rand() * H,
+      speed: 40 + rand() * 120,
+      size: 14 + rand() * 8,
+      chars: Array.from({ length: 26 }, () => "01{}[]()<>=+-*/;:constAI".charAt(Math.floor(rand() * 30))),
+      gold: rand() < 0.14
+    });
+  }
+  return cols;
+})();
+
+function chapterAt(t) {
+  for (const c of CHAPTERS) if (t >= c[0] && t < c[1]) return c[2];
+  return CHAPTERS[CHAPTERS.length - 1][2];
+}
+
+function drawRain(t, alpha) {
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.font = `500 18px ${HF.MONO}`;
+  for (const col of RAIN) {
+    const off = (col.y + t * col.speed) % (H + 360);
+    for (let k = 0; k < 22; k++) {
+      const y = off - k * 26;
+      if (y < -30 || y > H + 30) continue;
+      const a = (1 - k / 22) * 0.22 * alpha;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = col.gold ? GOLD : "#6D7CBF";
+      ctx.fillText(col.chars[k % col.chars.length], col.x, y);
+    }
+  }
+  ctx.restore();
+}
+
+function drawTerminal(x, y, w, h, title, lines, alpha, accent) {
+  ctx.save();
+  const outer = ctx.globalAlpha;
+  const A = outer * alpha;
+  ctx.globalAlpha = A;
+  HF.panel(ctx, x, y, w, h, 14, "rgba(9,9,20,0.94)", "rgba(120,130,190,0.22)", 1);
+  ctx.fillStyle = "rgba(255,255,255,0.035)";
+  ctx.fillRect(x, y, w, 42);
+  ["#FF6B6B", "#FFD166", "#7FD6A4"].forEach((c, i) => {
+    ctx.beginPath();
+    ctx.arc(x + 24 + i * 20, y + 21, 5, 0, Math.PI * 2);
+    ctx.fillStyle = c;
+    ctx.globalAlpha = A * 0.8;
+    ctx.fill();
+    ctx.globalAlpha = A;
+  });
+  HF.text(ctx, title, x + 100, y + 27, { size: 14, color: MUTED, family: HF.MONO });
+  let yy = y + 82;
+  for (const ln of lines) {
+    if (ln.hide) continue;
+    ctx.font = `500 ${ln.size || 22}px ${HF.MONO}`;
+    ctx.textAlign = "left";
+    ctx.fillStyle = ln.color || C.ink;
+    ctx.globalAlpha = A * (ln.a == null ? 1 : ln.a);
+    ctx.fillText(ln.text, x + 34, yy);
+    yy += ln.lh || 36;
+  }
+  if (accent) {
+    ctx.globalAlpha = A * 0.5;
+    ctx.fillStyle = accent;
+    ctx.fillRect(x, y + h - 3, w, 3);
+  }
+  ctx.restore();
+}
+
+function drawHook(t) {
+  const fadeOut = 1 - HF.smoothstep(12.8, 14, t);
+  const split = HF.smoothstep(6.9, 7.6, t);
+  drawRain(t, 0.55 * fadeOut);
+  ctx.save();
+  ctx.globalAlpha = fadeOut;
+
+  const leftW = HF.lerp(1240, 780, split);
+  const leftX = HF.lerp(340, 150, split);
+  const typed = "build me an app.";
+  const n = Math.floor(HF.clamp((t - 0.4) / 1.6, 0, 1) * typed.length);
+  const lines = [
+    { text: "$ " + typed.slice(0, n), color: INK, lh: 46 },
+    { text: "  scaffolding project ...", color: MUTED, hide: t < 1.9, a: 0.7 },
+    { text: "  ✓ 12 files created", color: GREEN, hide: t < 2.5 },
+    { text: "  ✓ 0 errors · build 1.4s", color: GREEN, hide: t < 3.2 },
+    { text: "  ▲ live at localhost:3000", color: CYAN, hide: t < 4.1 },
+    { text: "  $ _", color: INK, hide: t < 4.9 }
+  ];
+  drawTerminal(leftX, 280, leftW, 490, "~/project — zsh", lines, 1, GREEN);
+
+  if (split > 0.01) {
+    const rx = 1000, rw = 780;
+    const errs = [
+      { text: "$ npm run dev", color: INK, lh: 42 },
+      { text: "  TypeError: cannot read 'map'", color: "#FF8A8A", hide: t < 7.8, a: 0.95 },
+      { text: "  at Dashboard.tsx:84:17", color: MUTED, hide: t < 7.9, a: 0.8 },
+      { text: "  ✗ 23 errors", color: "#FF6B6B", hide: t < 8.2 },
+      { text: "  ✗ tests failed", color: "#FF6B6B", hide: t < 8.8 },
+      { text: "  $ _  (03:47 AM)", color: MUTED, hide: t < 9.4 }
+    ];
+    drawTerminal(rx, 300, rw, 380, "~/project — zsh", errs, split, RED);
+    ctx.save();
+    ctx.globalAlpha = split;
+    HF.text(ctx, "03:47", rx + rw - 40, 268, { size: 54, weight: 900, color: "rgba(181,58,47,0.85)", align: "right", family: HF.MONO });
+    ctx.restore();
+  }
+
+  if (t > 3.4 && split < 0.4) {
+    const a = HF.smoothstep(3.4, 4.0, t) * (1 - HF.smoothstep(6.6, 7.2, t));
+    ctx.save();
+    ctx.globalAlpha = a;
+    HF.text(ctx, "3.0s", leftX + leftW - 40, 300, { size: 74, weight: 900, color: GOLD, align: "right", family: HF.MONO });
+    HF.text(ctx, "TO FIRST RUN", leftX + leftW - 40, 330, { size: 13, color: MUTED, align: "right", letterSpacing: 3 });
+    ctx.restore();
+  }
+
+  if (t > 10.8) {
+    const a = HF.smoothstep(10.8, 11.6, t) * fadeOut;
+    ctx.save();
+    ctx.globalAlpha = a;
+    const cx = W / 2, cy = 520;
+    HF.text(ctx, "MODEL", cx - 170, cy, { size: 34, color: MUTED, align: "center", letterSpacing: 6 });
+    HF.text(ctx, "≠", cx, cy + 2, { size: 62, weight: 300, color: GOLD, align: "center" });
+    HF.text(ctx, "SPEED", cx + 170, cy, { size: 34, color: MUTED, align: "center", letterSpacing: 6 });
+    HF.text(ctx, "它不是魔法，是一层层工程。", cx, cy + 96, { size: 28, color: "rgba(234,234,242,0.6)", align: "center" });
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawTitle(t) {
+  const u = t - 14;
+  const a = Math.min(1, u / 0.6) * (1 - HF.smoothstep(5.4, 6.0, u));
+  if (a <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = a;
+  const cy = 500;
+  HF.text(ctx, "CODE 知识大赏", W / 2, cy - 170, { size: 18, color: GOLD, align: "center", letterSpacing: 12 });
+  const grow = HF.easeOutCubic(HF.clamp(u / 0.9, 0, 1));
+  ctx.strokeStyle = "rgba(201,169,106,0.5)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - 220 * grow, cy - 140);
+  ctx.lineTo(W / 2 + 220 * grow, cy - 140);
+  ctx.stroke();
+
+  HF.text(ctx, "《快，是被设计出来的》", W / 2, cy + 20, { size: 104, weight: 900, color: GOLD, align: "center", family: HF.SERIF });
+  HF.text(ctx, "AI 编程软件的逆向拆解", W / 2, cy + 96, { size: 38, weight: 500, color: INK, align: "center" });
+  HF.text(ctx, "The Anatomy of Speed", W / 2, cy + 148, { size: 26, color: MUTED, align: "center", family: HF.SERIF, italic: true });
+
+  const sc = HF.clamp((u - 1.2) / 0.8, 0, 1);
+  ctx.globalAlpha = a * sc * 0.7;
+  HF.text(ctx, "逆向工程 · 公开文档 · 示意动画", W / 2, 900, { size: 16, color: MUTED, align: "center", letterSpacing: 4 });
+  ctx.restore();
+}
+
+function drawTimeline(t) {
+  const u = t - 20;
+  const a = HF.smoothstep(0, 1.0, u);
+  const x0 = 260, x1 = 1660, y = 600;
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "四次跃迁", x0, 330, { size: 30, weight: 700, color: INK });
+  HF.text(ctx, "FOUR SHIFTS", x0, 362, { size: 14, color: MUTED, letterSpacing: 4 });
+
+  ctx.strokeStyle = "rgba(201,169,106,0.25)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  ctx.lineTo(x1, y);
+  ctx.stroke();
+
+  const p = HF.easeInOutCubic(HF.clamp(u / 10.5, 0, 1));
+  const grad = ctx.createLinearGradient(x0, 0, x0 + (x1 - x0) * p, 0);
+  grad.addColorStop(0, "rgba(201,169,106,0.2)");
+  grad.addColorStop(1, GOLD);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  ctx.lineTo(x0 + (x1 - x0) * p, y);
+  ctx.stroke();
+
+  const nodes = [
+    { x: 340, year: "2021", cn: "补全一行", en: "COMPLETE A LINE", product: "GitHub Copilot", at: 1.0 },
+    { x: 760, year: "2023", cn: "读懂文件", en: "READ THE FILE", product: "Cursor", at: 3.6 },
+    { x: 1180, year: "2025", cn: "接管终端", en: "TAKE THE TERMINAL", product: "Claude Code · TRAE", at: 6.2 },
+    { x: 1580, year: "2026", cn: "管理上下文", en: "MANAGE CONTEXT", product: "Context Engineering", at: 8.8 }
+  ];
+  for (const nd of nodes) {
+    const on = HF.clamp((u - nd.at) / 0.6, 0, 1);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2.4 + nd.x);
+    ctx.globalAlpha = a;
+    ctx.beginPath();
+    ctx.arc(nd.x, y, 26 + 10 * pulse * on, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(201,169,106,${0.12 + 0.18 * on})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(nd.x, y, 9, 0, Math.PI * 2);
+    ctx.fillStyle = on > 0 ? GOLD : "rgba(201,169,106,0.25)";
+    ctx.fill();
+    HF.text(ctx, nd.year, nd.x, y - 78, { size: 62, weight: 900, color: on > 0 ? INK : "rgba(234,234,242,0.25)", align: "center", family: HF.MONO, alpha: a });
+    HF.text(ctx, nd.cn, nd.x, y + 74, { size: 30, weight: 700, color: on > 0 ? GOLD : "rgba(201,169,106,0.3)", align: "center", alpha: a });
+    HF.text(ctx, nd.en, nd.x, y + 104, { size: 12, color: MUTED, align: "center", letterSpacing: 2.5, alpha: a * 0.8 });
+    HF.text(ctx, nd.product, nd.x, y + 140, { size: 16, color: on > 0 ? "rgba(234,234,242,0.72)" : "rgba(234,234,242,0.2)", align: "center", alpha: a });
+  }
+  ctx.globalAlpha = a * 0.8;
+  HF.text(ctx, "从「补全」到「接管」：每一步都把更多上下文交给机器。", W / 2, 790, { size: 22, color: "rgba(234,234,242,0.55)", align: "center" });
+  ctx.restore();
+}
+
+function drawMerkle(t) {
+  const u = t - 34;
+  const a = HF.smoothstep(0, 0.8, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  const rand = HF.rng(2026);
+  const tiles = [];
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 6; c++) {
+      tiles.push({
+        x: 100 + c * 126, y: 268 + r * 100, w: 108, h: 74,
+        hash: (Math.floor(rand() * 0xfffff) + 0x10000).toString(16),
+        changed: (r === 1 && c === 3) || (r === 2 && c === 1)
+      });
+    }
+  }
+  const build = HF.clamp(u / 4.6, 0, 1);
+  tiles.forEach((tl, i) => {
+    const on = HF.clamp((build * tiles.length - i) / 4, 0, 1);
+    const red = tl.changed && u > 6.8;
+    HF.panel(ctx, tl.x, tl.y, tl.w, tl.h, 6,
+      red ? "rgba(181,58,47,0.22)" : `rgba(24,28,54,${0.35 + 0.4 * on})`,
+      red ? "rgba(255,120,110,0.7)" : `rgba(120,130,190,${0.12 + 0.2 * on})`, 1);
+    HF.text(ctx, tl.hash, tl.x + 10, tl.y + 24, { size: 13, color: red ? "#FF9C94" : "rgba(190,198,230,0.75)", family: HF.MONO, alpha: a });
+    ctx.fillStyle = red ? "rgba(255,120,110,0.7)" : "rgba(201,169,106,0.25)";
+    ctx.fillRect(tl.x + 10, tl.y + 40, tl.w - 20, 2);
+    ctx.fillRect(tl.x + 10, tl.y + 50, (tl.w - 20) * 0.6, 2);
+  });
+  HF.text(ctx, "FILE HASHES", 100, 236, { size: 13, color: MUTED, letterSpacing: 3 });
+
+  const leaves = [1040, 1240, 1440, 1640];
+  const treeA = HF.clamp((u - 1.6) / 3.0, 0, 1);
+  const root = { x: 1340, y: 380 };
+  const parents = [{ x: 1140, y: 520, l: 0, r: 1 }, { x: 1540, y: 520, l: 2, r: 3 }];
+  ctx.strokeStyle = "rgba(160,175,235,0.28)";
+  ctx.lineWidth = 1.4;
+  parents.forEach((p) => {
+    ctx.beginPath();
+    ctx.moveTo(root.x, root.y + 18);
+    ctx.lineTo(p.x, p.y - 18);
+    ctx.stroke();
+  });
+  leaves.forEach((lx, i) => {
+    const p = parents[i < 2 ? 0 : 1];
+    const on = HF.clamp((treeA * 8 - i) / 2, 0, 1);
+    ctx.globalAlpha = a * on;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y + 16);
+    ctx.lineTo(lx, 690);
+    ctx.stroke();
+    ctx.globalAlpha = a;
+  });
+  leaves.forEach((lx) => {
+    ctx.beginPath();
+    ctx.arc(lx, 690, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(160,175,235,0.6)";
+    ctx.fill();
+  });
+  parents.forEach((p) => {
+    HF.panel(ctx, p.x - 46, p.y - 18, 92, 36, 6, "rgba(28,34,64,0.8)", "rgba(140,155,215,0.3)", 1);
+    HF.text(ctx, "h(·)", p.x, p.y + 6, { size: 14, color: "rgba(200,208,240,0.8)", align: "center", family: HF.MONO });
+  });
+  HF.panel(ctx, root.x - 60, root.y - 22, 120, 44, 8, "rgba(201,169,106,0.14)", "rgba(201,169,106,0.6)", 1.2);
+  HF.text(ctx, "ROOT", root.x, root.y + 7, { size: 16, color: GOLD, align: "center", letterSpacing: 3 });
+
+  if (u > 6.8) {
+    const s = HF.smoothstep(6.8, 7.6, u);
+    ctx.globalAlpha = a * s;
+    ctx.strokeStyle = "rgba(255,120,110,0.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(100 + 3 * 126 + 54, 368);
+    ctx.lineTo(parents[0].x, parents[0].y - 18);
+    ctx.lineTo(root.x, root.y + 22);
+    ctx.stroke();
+    const g = ctx.createRadialGradient(root.x, root.y, 4, root.x, root.y, 90);
+    g.addColorStop(0, "rgba(255,120,110,0.25)");
+    g.addColorStop(1, "rgba(255,120,110,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(root.x - 90, root.y - 90, 180, 180);
+  }
+
+  if (u > 10.5) {
+    const s = HF.smoothstep(10.5, 11.4, u);
+    ctx.globalAlpha = a * s;
+    const chips = [
+      { x: 960, label: "MEDIAN · TIME TO FIRST QUERY", v1: "7.87s", v2: "0.525s" },
+      { x: 1400, label: "P99 · TIME TO FIRST QUERY", v1: "4.03h", v2: "21s" }
+    ];
+    for (const ch of chips) {
+      HF.panel(ctx, ch.x, 748, 420, 96, 10, "rgba(10,12,28,0.9)", "rgba(201,169,106,0.25)", 1);
+      HF.text(ctx, ch.label, ch.x + 18, 776, { size: 11, color: MUTED, letterSpacing: 1.6 });
+      HF.text(ctx, ch.v1, ch.x + 18, 826, { size: 34, weight: 700, color: "rgba(234,234,242,0.45)", family: HF.MONO });
+      HF.text(ctx, "→", ch.x + 176, 824, { size: 24, color: MUTED });
+      HF.text(ctx, ch.v2, ch.x + 210, 828, { size: 40, weight: 900, color: GOLD, family: HF.MONO });
+    }
+  }
+
+  ctx.globalAlpha = a * 0.7;
+  HF.text(ctx, "同团队代码库平均 92% 相似：可直接复用队友的索引。", 960, 715, { size: 16, color: "rgba(234,234,242,0.5)" });
+  ctx.restore();
+}
+
+function drawChunks(t) {
+  const u = t - 52;
+  const a = HF.smoothstep(0, 0.8, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  const lines = [
+    [["export ", C.kw], ["async function ", C.kw], ["loadRepo", C.fn], ["(dir) {", C.ink]],
+    [["  const ", C.kw], ["files ", C.ink], ["= ", C.ink], ["await ", C.kw], ["walk", C.fn], ["(dir);", C.ink]],
+    [["  return ", C.kw], ["files.", C.ink], ["map", C.fn], ["(", C.ink], ["parse", C.fn], [");", C.ink]],
+    [["}", C.ink]],
+    [["", C.ink]],
+    [["// chunk by syntax, not by line", C.com]],
+    [["function ", C.kw], ["chunk", C.fn], ["(", C.ink], ["ast", C.ink], [") {", C.ink]],
+    [["  return ", C.kw], ["split", C.fn], ["(ast, ", C.ink], ["512", C.num], [");", C.ink]],
+    [["}", C.ink]]
+  ];
+  HF.panel(ctx, 120, 250, 760, 470, 14, "rgba(10,12,26,0.92)", "rgba(120,130,190,0.2)", 1);
+  HF.text(ctx, "repository.ts", 150, 288, { size: 14, color: MUTED, family: HF.MONO });
+  let yy = 336;
+  lines.forEach((segs, i) => {
+    let x = 186;
+    ctx.font = `500 22px ${HF.MONO}`;
+    ctx.textAlign = "left";
+    HF.text(ctx, String(i + 1).padStart(2, "0"), 168, yy, { size: 13, color: "rgba(138,138,160,0.5)", family: HF.MONO, align: "right" });
+    ctx.textAlign = "left";
+    for (const [txt, col] of segs) {
+      ctx.font = `500 22px ${HF.MONO}`;
+      ctx.fillStyle = col;
+      ctx.fillText(txt, x, yy);
+      x += ctx.measureText(txt).width;
+    }
+    yy += 42;
+  });
+
+  // highlighted chunks
+  const chunks = [
+    { y: 336 + 42, h: 38, col: "rgba(111,211,255,0.14)", edge: CYAN, to: 0 },
+    { y: 336 + 4 * 42, h: 38, col: "rgba(199,146,234,0.12)", edge: "#C792EA", to: 1 },
+    { y: 336 + 6 * 42, h: 38, col: "rgba(127,214,164,0.12)", edge: GREEN, to: 2 }
+  ];
+  const fly = HF.clamp((u - 4.0) / 4.2, 0, 1);
+
+  // vector field
+  HF.panel(ctx, 980, 250, 820, 470, 14, "rgba(8,10,24,0.75)", "rgba(120,130,190,0.16)", 1);
+  HF.text(ctx, "VECTOR SPACE", 1010, 288, { size: 13, color: MUTED, letterSpacing: 3 });
+  const rand = HF.rng(552);
+  const dots = [];
+  for (let i = 0; i < 46; i++) {
+    dots.push({ x: 1040 + rand() * 720, y: 330 + rand() * 330, r: 2 + rand() * 3 });
+  }
+  dots.forEach((d) => {
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(150,165,225,0.4)";
+    ctx.fill();
+  });
+  const q = { x: 1360, y: 520 };
+  const nearest = dots
+    .map((d) => ({ d, dist: Math.hypot(d.x - q.x, d.y - q.y) }))
+    .sort((p, q2) => p.dist - q2.dist)
+    .slice(0, 5);
+  const link = HF.clamp((u - 7.4) / 1.4, 0, 1);
+  ctx.globalAlpha = a * link;
+  nearest.forEach((n) => {
+    ctx.strokeStyle = "rgba(111,211,255,0.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(q.x, q.y);
+    ctx.lineTo(n.d.x, n.d.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(n.d.x, n.d.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = CYAN;
+    ctx.fill();
+  });
+  ctx.globalAlpha = a;
+  ctx.beginPath();
+  ctx.arc(q.x, q.y, 9, 0, Math.PI * 2);
+  ctx.fillStyle = GOLD;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(q.x, q.y, 18 + 4 * Math.sin(t * 3), 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(201,169,106,0.5)";
+  ctx.stroke();
+  HF.text(ctx, "query", q.x, q.y + 38, { size: 13, color: GOLD, align: "center", family: HF.MONO });
+
+  chunks.forEach((ch, i) => {
+    ctx.globalAlpha = a * (0.7 + 0.3 * Math.sin(t * 2 + i));
+    ctx.fillStyle = ch.col;
+    ctx.fillRect(176, ch.y - 28, 690, ch.h);
+    ctx.strokeStyle = ch.edge;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(176, ch.y - 28);
+    ctx.lineTo(866, ch.y - 28);
+    ctx.stroke();
+    if (fly > 0) {
+      const p = HF.easeInOutCubic(HF.clamp(fly * 1.6 - i * 0.18, 0, 1));
+      const sx = 700, sy = ch.y - 8;
+      const ex = dots[(i * 11 + 7) % dots.length].x, ey = dots[(i * 11 + 7) % dots.length].y;
+      const bx = HF.lerp(sx, ex, p), by = HF.lerp(sy, ey, p) - Math.sin(p * Math.PI) * 90;
+      ctx.globalAlpha = a * 0.9;
+      ctx.beginPath();
+      ctx.arc(bx, by, 7, 0, Math.PI * 2);
+      ctx.fillStyle = ch.edge;
+      ctx.fill();
+      ctx.strokeStyle = ch.edge;
+      ctx.globalAlpha = a * 0.25;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo((sx + ex) / 2, (sy + ey) / 2 - 120, ex, ey);
+      ctx.stroke();
+    }
+  });
+  ctx.globalAlpha = a * 0.75;
+  HF.text(ctx, "同一段语法，落到同一个向量。", W / 2, 790, { size: 22, color: "rgba(234,234,242,0.55)", align: "center" });
+  ctx.restore();
+}
+
+function drawDiff(t) {
+  const u = t - 66;
+  const a = HF.smoothstep(0, 0.6, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.panel(ctx, 380, 240, 1160, 400, 14, "rgba(10,12,26,0.94)", "rgba(120,130,190,0.2)", 1);
+  HF.text(ctx, "src/dashboard.tsx", 412, 276, { size: 14, color: MUTED, family: HF.MONO });
+  HF.text(ctx, "FAST APPLY", 1500, 276, { size: 13, color: GOLD, align: "right", letterSpacing: 3 });
+
+  const base = [
+    "export function Dashboard({ user }) {",
+    "  const rows = data.map((r) => r.value);",
+    "  const total = rows.reduce((a, b) => a + b, 0);",
+    "  return <Chart rows={rows} total={total} />;",
+    "}"
+  ];
+  const before = [
+    "  const rows = data.map((r) => r.value);",
+    "  const total = rows.reduce((a, b) => a + b, 0);"
+  ];
+  const after = [
+    "  const rows = data?.map((r) => r?.value ?? 0) ?? [];",
+    "  const total = rows.reduce((a, b) => a + b, 0);"
+  ];
+
+  const applied = HF.clamp((u - 1.6) / 2.0, 0, 1);
+  const startY = 330;
+  const lh = 40;
+  let idx = 0;
+  const line = (txt, y, color, strike) => {
+    HF.text(ctx, txt, 430, y, { size: 21, color: color, family: HF.MONO });
+    if (strike) {
+      const w = ctx.measureText(txt).width;
+      ctx.strokeStyle = "rgba(255,120,110,0.6)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(430, y - 7);
+      ctx.lineTo(430 + w, y - 7);
+      ctx.stroke();
+    }
+  };
+  line(base[0], startY, C.ink);
+  const removedA = 1 - applied;
+  ctx.globalAlpha = a * removedA;
+  line(before[0], startY + lh, "#FF9C94", true);
+  line(before[1], startY + lh * 2, "#FF9C94", true);
+  ctx.globalAlpha = a;
+  const addedA = HF.clamp((u - 2.6) / 0.8, 0, 1);
+  ctx.globalAlpha = a * addedA;
+  ctx.fillStyle = "rgba(127,214,164,0.08)";
+  ctx.fillRect(414, startY + lh - 28, 1100, lh);
+  line(after[0], startY + lh, "#9FF0C0", false);
+  line(after[1], startY + lh * 2, "#9FF0C0", false);
+  ctx.globalAlpha = a;
+  HF.text(ctx, base[3], 430, startY + lh * 3, { size: 21, color: C.ink, family: HF.MONO });
+  HF.text(ctx, base[4], 430, startY + lh * 4, { size: 21, color: C.ink, family: HF.MONO });
+
+  const sweep = HF.clamp((u - 2.2) / 2.4, 0, 1);
+  if (sweep > 0) {
+    const sy = startY + lh * 1.5;
+    const sx = 430 + HF.easeInOutCubic(sweep) * 1050;
+    const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 72);
+    g.addColorStop(0, "rgba(127,214,164,0.22)");
+    g.addColorStop(1, "rgba(127,214,164,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(sx - 72, sy - 72, 144, 144);
+    ctx.fillStyle = "rgba(127,214,164,0.9)";
+    ctx.fillRect(sx, sy - 46, 2, 100);
+  }
+
+  if (u > 4.2) {
+    const s = HF.smoothstep(4.2, 5.0, u);
+    ctx.globalAlpha = a * s;
+    HF.panel(ctx, 380, 660, 1160, 56, 8, "rgba(127,214,164,0.08)", "rgba(127,214,164,0.35)", 1);
+    HF.text(ctx, "✓ patch applied · 2 lines changed · 0 full-file rewrites", 414, 696, { size: 18, color: "#9FF0C0", family: HF.MONO });
+  }
+  ctx.restore();
+}
+
+function drawRam(t) {
+  const u = t - 73;
+  const a = HF.smoothstep(0, 0.7, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  const x = 260, y = 380, w = 1400, h = 150;
+  const compacting = HF.clamp((u - 9.6) / 1.6, 0, 1);
+  const compacted = u >= 11.2;
+  const fill = compacted ? 0.26 : HF.clamp((u / 9.5) * 0.96, 0, 0.96);
+  const warn = fill > 0.88 && !compacted;
+  const pct = Math.round(fill * 100);
+
+  HF.panel(ctx, x, y, w, h, 14, "rgba(10,12,28,0.92)", warn ? "rgba(255,120,110,0.6)" : "rgba(201,169,106,0.28)", 1.2);
+  HF.text(ctx, "CONTEXT WINDOW", x + 26, y - 26, { size: 15, color: MUTED, letterSpacing: 3 });
+  HF.text(ctx, warn ? `${pct}% · NEAR LIMIT` : compacted ? "COMPACTED · 8K SUMMARY" : "200K TOKENS", x + w - 26, y - 26, { size: 15, color: warn ? "#FF9C94" : GOLD, align: "right", letterSpacing: 2 });
+
+  const pad = 14, segs = 28, gap = 5;
+  const sw = (w - pad * 2 - gap * (segs - 1)) / segs;
+  for (let i = 0; i < segs; i++) {
+    const on = !compacted && i / segs < fill;
+    const hot = warn && i / segs > 0.82;
+    ctx.fillStyle = on ? (hot ? "rgba(255,120,110,0.8)" : "rgba(201,169,106,0.75)") : "rgba(255,255,255,0.06)";
+    ctx.fillRect(x + pad + i * (sw + gap), y + pad, sw, h - pad * 2);
+  }
+
+  // compaction: a summary block peels off to the left
+  if (compacting > 0 && compacting < 1) {
+    const p = HF.easeInOutCubic(compacting);
+    const bw = HF.lerp(w - pad * 2, 150, p);
+    ctx.globalAlpha = a * 0.9;
+    ctx.fillStyle = "rgba(201,169,106,0.35)";
+    ctx.fillRect(x + pad, y + pad, bw, h - pad * 2);
+    ctx.globalAlpha = a;
+  }
+  if (compacted) {
+    HF.panel(ctx, x + pad, y + pad, 190, h - pad * 2, 8, "#0a0c1c", "rgba(201,169,106,0.65)", 1.2);
+    HF.text(ctx, "8K", x + pad + 95, y + pad + 52, { size: 40, weight: 900, color: GOLD, align: "center", family: HF.MONO });
+    HF.text(ctx, "SUMMARY", x + pad + 95, y + pad + 80, { size: 11, color: GOLD, align: "center", letterSpacing: 2 });
+  }
+
+  HF.text(ctx, pct + "%", x + w, y + h + 70, { size: 60, weight: 900, color: warn ? "#FF9C94" : GOLD, align: "right", family: HF.MONO });
+  HF.text(ctx, "OF CONTEXT USED", x + w, y + h + 96, { size: 12, color: MUTED, align: "right", letterSpacing: 2.4 });
+
+  // subagents
+  if (u > 13.6) {
+    const s = HF.smoothstep(13.6, 14.6, u);
+    ctx.globalAlpha = a * s;
+    const boxes = [
+      { x: 300, label: "SUBAGENT A", task: "search" },
+      { x: 700, label: "SUBAGENT B", task: "edit" },
+      { x: 1100, label: "SUBAGENT C", task: "test" }
+    ];
+    boxes.forEach((b, i) => {
+      ctx.strokeStyle = "rgba(120,215,255,0.4)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x + 220 + i * 400, y + h);
+      ctx.bezierCurveTo(x + 220 + i * 400, y + h + 50, b.x + 170, y + h + 50, b.x + 170, y + h + 96);
+      ctx.stroke();
+      HF.panel(ctx, b.x, y + h + 96, 340, 100, 8, "rgba(10,14,30,0.9)", "rgba(120,215,255,0.28)", 1);
+      HF.text(ctx, b.label, b.x + 20, y + h + 130, { size: 13, color: CYAN, letterSpacing: 2 });
+      HF.text(ctx, b.task, b.x + 20, y + h + 168, { size: 26, weight: 700, color: INK, family: HF.MONO });
+      HF.text(ctx, "独立上下文", b.x + 320, y + h + 168, { size: 12, color: MUTED, align: "right" });
+    });
+  }
+
+  if (u > 2.0) {
+    const s = HF.smoothstep(2.0, 3.0, u);
+    ctx.globalAlpha = a * s * 0.8;
+    HF.text(ctx, "MEMORY MANAGER", 260, 760, { size: 13, color: MUTED, letterSpacing: 4 });
+    HF.text(ctx, "不是记得更多，而是知道何时忘记。", 260, 796, { size: 22, color: "rgba(234,234,242,0.55)" });
+  }
+  window.__ramDebug = { t, u, compacting, compacted, fill };
+  ctx.restore();
+}
+
+function compiled(n) { return String(n); }
+
+function drawJudgment(t) {
+  const u = t - 94;
+  const a = HF.smoothstep(0, 0.7, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  const ox = 340, oy = 760, ex = 1620, ey = 300;
+  ctx.strokeStyle = "rgba(160,170,220,0.35)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(ox, ey);
+  ctx.lineTo(ox, oy);
+  ctx.lineTo(ex, oy);
+  ctx.stroke();
+  HF.text(ctx, "SPEED", ex - 10, oy + 40, { size: 13, color: MUTED, align: "right", letterSpacing: 3 });
+  HF.text(ctx, "CORRECT", ox - 20, ey + 6, { size: 13, color: MUTED, align: "right", letterSpacing: 3 });
+
+  ctx.setLineDash([6, 8]);
+  ctx.strokeStyle = "rgba(201,169,106,0.25)";
+  ctx.beginPath();
+  ctx.moveTo(ox, 400);
+  ctx.lineTo(ex, 400);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  HF.text(ctx, "the line it should hold", ex - 10, 386, { size: 13, color: "rgba(201,169,106,0.5)", align: "right", family: HF.SERIF, italic: true });
+
+  const p = HF.clamp(u / 9.5, 0, 1);
+  const x = HF.lerp(ox + 30, ex - 60, HF.easeInOutCubic(p));
+  let y = 400;
+  if (u > 6.2) {
+    const fall = HF.easeInOutCubic(HF.clamp((u - 6.2) / 2.6, 0, 1));
+    y = 400 + fall * 300;
+  }
+  const trail = [];
+  for (let i = 0; i < 24; i++) {
+    const q = Math.max(0, p - i * 0.012);
+    const tx = HF.lerp(ox + 30, ex - 60, HF.easeInOutCubic(q));
+    let ty = 400;
+    if (u > 6.2) ty = 400 + HF.easeInOutCubic(HF.clamp((u - 6.2) / 2.6, 0, 1)) * 300 * (1 - i / 30);
+    trail.push([tx, ty, 1 - i / 24]);
+  }
+  trail.forEach(([tx, ty, al]) => {
+    ctx.globalAlpha = a * al * 0.4;
+    ctx.beginPath();
+    ctx.arc(tx, ty, 3 + al * 2, 0, Math.PI * 2);
+    ctx.fillStyle = y > 500 ? "#FF7B6B" : GOLD;
+    ctx.fill();
+  });
+  ctx.globalAlpha = a;
+  const g = ctx.createRadialGradient(x, y, 2, x, y, 34);
+  g.addColorStop(0, y > 500 ? "rgba(255,123,107,0.9)" : "rgba(201,169,106,0.9)");
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(x - 34, y - 34, 68, 68);
+  ctx.beginPath();
+  ctx.arc(x, y, 8, 0, Math.PI * 2);
+  ctx.fillStyle = y > 500 ? "#FF7B6B" : GOLD;
+  ctx.fill();
+
+  if (u > 6.6) {
+    const s = HF.smoothstep(6.6, 7.4, u);
+    ctx.globalAlpha = a * s;
+    HF.text(ctx, "FAST ≠ CORRECT", 1180, 300, { size: 72, weight: 900, color: "rgba(255,123,107,0.9)", align: "center", family: HF.SERIF });
+    HF.text(ctx, "快，只是把试错成本挪了个位置。", 1180, 350, { size: 22, color: "rgba(234,234,242,0.6)", align: "center" });
+  }
+  ctx.globalAlpha = a * 0.85;
+  HF.text(ctx, "它越快，你越要在「接受」之前看一眼。", W / 2, 845, { size: 24, color: "rgba(234,234,242,0.6)", align: "center" });
+  ctx.restore();
+}
+
+function drawTakeaway(t) {
+  const u = t - 108;
+  const a = HF.smoothstep(0, 0.6, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "THE ONLY DIVISION THAT MATTERS", W / 2, 300, { size: 13, color: MUTED, align: "center", letterSpacing: 5 });
+
+  const l1 = HF.clamp((u - 0.4) / 0.9, 0, 1);
+  const l2 = HF.clamp((u - 2.2) / 0.9, 0, 1);
+  HF.text(ctx, "把重复交给机器", W / 2, 470, { size: 72, weight: 900, color: INK, align: "center", family: HF.SERIF, alpha: a * l1 });
+  HF.text(ctx, "GIVE REPETITION TO MACHINES", W / 2, 512, { size: 16, color: MUTED, align: "center", letterSpacing: 3, alpha: a * l1 });
+
+  ctx.strokeStyle = "rgba(201,169,106,0.5)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - 300 * l2, 545);
+  ctx.lineTo(W / 2 + 300 * l2, 545);
+  ctx.stroke();
+
+  HF.text(ctx, "把判断留给自己", W / 2, 650, { size: 72, weight: 900, color: GOLD, align: "center", family: HF.SERIF, alpha: a * l2 });
+  HF.text(ctx, "KEEP JUDGMENT FOR YOURSELF", W / 2, 692, { size: 16, color: MUTED, align: "center", letterSpacing: 3, alpha: a * l2 });
+
+  const l3 = HF.clamp((u - 4.4) / 0.9, 0, 1);
+  HF.text(ctx, "工具负责变快，你负责选方向。", W / 2, 810, { size: 26, color: "rgba(234,234,242,0.55)", align: "center", alpha: a * l3 });
+  ctx.restore();
+}
+
+function drawCitations(t) {
+  const u = t - 118;
+  const a = HF.smoothstep(0, 0.8, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.panel(ctx, 220, 180, 1480, 690, 14, "rgba(8,9,20,0.92)", "rgba(201,169,106,0.2)", 1);
+  HF.text(ctx, "SOURCES / 来源", 270, 236, { size: 15, color: GOLD, letterSpacing: 4 });
+  ctx.strokeStyle = "rgba(201,169,106,0.25)";
+  ctx.beginPath();
+  ctx.moveTo(270, 256);
+  ctx.lineTo(1650, 256);
+  ctx.stroke();
+
+  const refs = [
+    ["Cursor", "“Securely indexing large codebases”, 2026-01-27", "cursor.com/blog/secure-codebase-indexing"],
+    ["TRAE", "“SOLO is All You Need”, 2025-07-17", "trae.ai/blog/product_solo"],
+    ["Anthropic", "“How the agent loop works”, Claude Code Docs", "code.claude.com/docs/en/agent-sdk/agent-loop"]
+  ];
+  let y = 320;
+  refs.forEach((r) => {
+    HF.text(ctx, r[0], 270, y, { size: 22, weight: 700, color: INK });
+    HF.text(ctx, r[1], 270, y + 32, { size: 17, color: "rgba(234,234,242,0.7)", family: HF.SERIF });
+    HF.text(ctx, r[2], 270, y + 56, { size: 14, color: MUTED, family: HF.MONO });
+    y += 108;
+  });
+
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.beginPath();
+  ctx.moveTo(270, 660);
+  ctx.lineTo(1650, 660);
+  ctx.stroke();
+  HF.text(ctx, "声明", 270, 704, { size: 15, color: GOLD, letterSpacing: 3 });
+  HF.text(ctx, "界面与动画为示意，不是任何产品的实际截图。数据来自公开文档，截至 2026-10-20。", 340, 704, { size: 18, color: "rgba(234,234,242,0.66)" });
+  HF.text(ctx, "风格参考：抖音「Vibe 知识大赏」系列（@Iwanau / @Juno / 叁号暗房），本片为独立代码实现。", 270, 760, { size: 15, color: "rgba(234,234,242,0.42)" });
+  HF.text(ctx, "本片无旁白、无实拍素材；音乐由 numpy 逐样本合成。", 270, 792, { size: 15, color: "rgba(234,234,242,0.42)" });
+
+  HF.text(ctx, "CODE 知识大赏", 1650, 800, { size: 20, weight: 700, color: GOLD, align: "right", letterSpacing: 4 });
+  HF.text(ctx, "REVERSE ENGINEERING · 2026", 1650, 826, { size: 11, color: MUTED, align: "right", letterSpacing: 2.4 });
+  ctx.restore();
+}
+
+function drawWipe(t) {
+  const cuts = [14, 20, 34, 52, 66, 73, 94, 108, 118];
+  for (const c of cuts) {
+    const u = t - c;
+    if (u < 0 || u > 0.55) continue;
+    const p = HF.easeInOutCubic(u / 0.55);
+    const x = HF.lerp(-80, W + 80, p);
+    const g = ctx.createLinearGradient(x - 120, 0, x + 20, 0);
+    g.addColorStop(0, "rgba(201,169,106,0)");
+    g.addColorStop(0.75, "rgba(201,169,106,0.10)");
+    g.addColorStop(1, "rgba(201,169,106,0.55)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 120, 0, 140, H);
+    ctx.fillStyle = "rgba(201,169,106,0.65)";
+    ctx.fillRect(x, 0, 2, H);
+  }
+}
+
+function render(t) {
+  HF.base(ctx, t, DUR);
+  HF.drawStars(ctx, STARS, t, 0.45);
+
+  const bandY = ((t * 23) % (H + 420)) - 210;
+  const band = ctx.createLinearGradient(0, bandY - 210, 0, bandY + 210);
+  band.addColorStop(0, "rgba(110,130,210,0)");
+  band.addColorStop(0.5, "rgba(110,130,210,0.035)");
+  band.addColorStop(1, "rgba(110,130,210,0)");
+  ctx.fillStyle = band;
+  ctx.fillRect(0, bandY - 210, W, 420);
+
+  for (const d of DUST) {
+    const y = ((d.y - t * d.v) % H + H) % H;
+    ctx.globalAlpha = 0.12 + 0.10 * Math.sin(t * 1.2 + d.p);
+    ctx.fillStyle = "#B9C6FF";
+    ctx.beginPath();
+    ctx.arc(d.x, y, d.s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  if (t < 14) drawHook(t);
+  else if (t < 20) drawTitle(t);
+  else if (t < 34) drawTimeline(t);
+  else if (t < 52) drawMerkle(t);
+  else if (t < 66) drawChunks(t);
+  else if (t < 73) drawDiff(t);
+  else if (t < 94) drawRam(t);
+  else if (t < 108) drawJudgment(t);
+  else if (t < 118) drawTakeaway(t);
+  else drawCitations(t);
+
+  drawWipe(t);
+
+  HF.header(ctx, "@CODE 知识大赏", chapterAt(t), "REVERSE ENGINEERING · 2026", W);
+
+  for (const s of SUBS) {
+    if (t >= s[0] && t <= s[1]) {
+      HF.subtitle(ctx, s[2], s[3], t, s[0], s[1], W, H);
+      break;
+    }
+  }
+
+  HF.finishFrame(ctx, t, DUR);
+}
+
+window.render = render;
+window.__ready = true;
+</script>
+</body>
+</html>

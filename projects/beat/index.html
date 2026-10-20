@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>VIBE CODING · 128 BPM</title>
+<style>
+  @font-face { font-family: "Noto Sans SC"; src: url("../../assets/fonts/NotoSansSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: "Noto Serif SC"; src: url("../../assets/fonts/NotoSerifSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  html, body { margin: 0; padding: 0; background: #05050a; overflow: hidden; }
+  canvas { display: block; width: 1080px; height: 1920px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="../../engine/hf.js"></script>
+<script>
+const W = 1080, H = 1920, DUR = 24, FPS = 30;
+const BPM = 128, BEAT = 60 / BPM, BAR = BEAT * 4;
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+const LIME = "#C6FF3D", VIOLET = "#8B6BFF", PINK = "#FF5C8A", CYAN = "#5EE7FF", INK = "#F2F4FF", MUTED = "#8A8AA0";
+const K = "#C792EA", F = "#82AAFF", S = "#C3E88D", N = "#F78C6C", M = "#6B7394";
+
+const SCENES = [
+  [0.0, "count"],
+  [1.875, "title"],
+  [3.75, "prompt"],
+  [5.625, "reply"],
+  [7.5, "code1"],
+  [9.375, "code2"],
+  [11.25, "diff"],
+  [13.125, "pass"],
+  [15.0, "build"],
+  [16.875, "built"],
+  [18.75, "push"],
+  [20.625, "deploy"],
+  [22.5, "end"]
+];
+
+const CODE = [
+  [["import ", K], ["{ useState }", INK], [" from ", K], ["'react'", S], [";", M]],
+  [["import ", K], ["{ checkIn }", INK], [" from ", K], ["'./api'", S], [";", M]],
+  [["", M]],
+  [["export default function ", K], ["App", F], ["() {", INK]],
+  [["  const ", K], ["[days, setDays] ", INK], ["= useState", F], ["(0);", INK]],
+  [["  const ", K], ["[streak, setStreak] ", INK], ["= useState", F], ["(0);", INK]],
+  [["", M]],
+  [["  async function ", K], ["check", F], ["() {", INK]],
+  [["    const r = ", K], ["await ", K], ["checkIn", F], ["();", INK]],
+  [["    ", INK], ["setDays", F], ["(r.days); ", INK], ["setStreak", F], ["(r.streak);", INK]],
+  [["  }", INK]],
+  [["", M]],
+  [["  return ", K], ["<Streak days={days} streak={streak} />;", S]],
+  [["}", INK]]
+];
+
+const CONFETTI = (() => {
+  const r = HF.rng(128);
+  const a = [];
+  for (let i = 0; i < 90; i++) {
+    a.push({ x: r() * W, y: r() * -600, vy: 260 + r() * 520, vx: (r() - 0.5) * 120, s: 4 + r() * 8, rot: r() * 6.28, vr: (r() - 0.5) * 8, c: [LIME, VIOLET, PINK, CYAN][Math.floor(r() * 4)] });
+  }
+  return a;
+})();
+
+function sceneAt(t) {
+  let s = SCENES[0][1];
+  for (const x of SCENES) if (t >= x[0]) s = x[1];
+  return s;
+}
+
+function punch() {
+  const ph = (t) => (t / BEAT) % 1;
+  return 1 + 0.012 * Math.exp(-ph(tNow) * 7);
+}
+
+let tNow = 0;
+
+function drawBG(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#07070F");
+  g.addColorStop(0.5, "#0A0A18");
+  g.addColorStop(1, "#05050C");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  const glow = ctx.createRadialGradient(W / 2, H * 0.38, 40, W / 2, H * 0.38, W * 0.9);
+  glow.addColorStop(0, "rgba(90,60,200,0.20)");
+  glow.addColorStop(0.6, "rgba(20,40,90,0.10)");
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  const ph = (t / BEAT) % 1;
+  const k = Math.exp(-ph * 5);
+  ctx.strokeStyle = `rgba(120,140,220,${0.05 + 0.05 * k})`;
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 90) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  const off = (t * 40) % 90;
+  for (let y = -90 + off; y < H; y += 90) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // horizon glow line
+  const lg = ctx.createLinearGradient(0, 0, W, 0);
+  lg.addColorStop(0, "rgba(198,255,61,0)");
+  lg.addColorStop(0.5, `rgba(198,255,61,${0.25 + 0.35 * k})`);
+  lg.addColorStop(1, "rgba(198,255,61,0)");
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, H * 0.72, W, 2);
+}
+
+function glitch(str, x, y, size, col, amp) {
+  const a = amp == null ? 5 : amp;
+  const dx = Math.sin(tNow * 61) * a;
+  ctx.save();
+  ctx.textAlign = "center";
+  HF.setFont(ctx, size, 900, HF.SANS);
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = CYAN;
+  ctx.fillText(str, x - a, y + dx * 0.4);
+  ctx.fillStyle = PINK;
+  ctx.fillText(str, x + a, y - dx * 0.4);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = col || INK;
+  ctx.fillText(str, x, y);
+  ctx.restore();
+}
+
+function chip(text, x, y, col, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  HF.setFont(ctx, 22, 700, HF.MONO);
+  const w = ctx.measureText(text).width + 34;
+  HF.panel(ctx, x, y, w, 44, 8, "rgba(0,0,0,0.45)", col, 1.2);
+  HF.text(ctx, text, x + 17, y + 29, { size: 16, color: col, family: HF.MONO, letterSpacing: 1.5 });
+  ctx.restore();
+  return w;
+}
+
+function windowBox(x, y, w, h, title, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  HF.panel(ctx, x, y, w, h, 20, "rgba(8,9,18,0.94)", "rgba(140,150,210,0.28)", 1.2);
+  ctx.fillStyle = "rgba(255,255,255,0.04)";
+  ctx.fillRect(x, y, w, 66);
+  [PINK, "#FFD166", LIME].forEach((c, i) => {
+    ctx.beginPath();
+    ctx.arc(x + 32 + i * 26, y + 33, 7, 0, Math.PI * 2);
+    ctx.fillStyle = c;
+    ctx.fill();
+  });
+  HF.text(ctx, title, x + 130, y + 42, { size: 20, color: MUTED, family: HF.MONO });
+  ctx.restore();
+}
+
+function drawCount(t) {
+  const u = t;
+  const a = HF.smoothstep(0, 0.2, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "00 / 08", W / 2, 520, { size: 24, color: LIME, align: "center", letterSpacing: 8 });
+  glitch("0", W / 2, 980, 620, INK, 8);
+  HF.text(ctx, "START THE CLOCK", W / 2, 1130, { size: 22, color: MUTED, align: "center", letterSpacing: 6 });
+  ctx.restore();
+}
+
+function drawTitle(t) {
+  const u = t - 1.875;
+  const a = HF.smoothstep(0, 0.18, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "128 BPM · 8 BARS", W / 2, 430, { size: 22, color: LIME, align: "center", letterSpacing: 5 });
+  glitch("VIBE", W / 2, 760, 230, INK, 6);
+  glitch("CODING", W / 2, 1010, 230, LIME, 6);
+  HF.text(ctx, "从一句需求，到一次上线", W / 2, 1160, { size: 34, color: "rgba(242,244,255,0.7)", align: "center" });
+  HF.text(ctx, "FROM ONE PROMPT TO PRODUCTION", W / 2, 1210, { size: 15, color: MUTED, align: "center", letterSpacing: 4 });
+  ctx.restore();
+}
+
+function drawPrompt(t) {
+  const u = t - 3.75;
+  const a = HF.smoothstep(0, 0.12, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  windowBox(90, 640, 900, 560, "prompt.txt — 1 new message");
+  const full = "做一个能打卡的 App";
+  const n = Math.floor(HF.clamp(u / 0.65, 0, 1) * full.length);
+  HF.text(ctx, "> " + full.slice(0, n), 140, 820, { size: 46, weight: 700, color: INK });
+  if (n >= full.length) {
+    HF.text(ctx, "AI 正在拆解需求…", 140, 900, { size: 24, color: MUTED });
+    HF.text(ctx, "⏎", 900, 1130, { size: 48, color: LIME, align: "center", alpha: 0.5 + 0.5 * Math.sin(t * 8) });
+  }
+  ctx.restore();
+}
+
+function drawReply(t) {
+  const u = t - 5.625;
+  const a = HF.smoothstep(0, 0.12, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  windowBox(90, 560, 900, 700, "agent — plan");
+  const rows = [
+    ["√", "reading your intent", "12 files"],
+    ["√", "scaffolding components", "4 files"],
+    ["√", "wiring the API", "1 file"],
+    ["√", "writing tests", "9 cases"]
+  ];
+  rows.forEach((r, i) => {
+    const on = HF.clamp((u - 0.12 - i * 0.13) / 0.12, 0, 1);
+    ctx.globalAlpha = a * on;
+    HF.text(ctx, r[0], 140, 720 + i * 105, { size: 34, color: LIME, family: HF.MONO });
+    HF.text(ctx, r[1], 200, 718 + i * 105, { size: 28, color: INK });
+    HF.text(ctx, r[2], 900, 718 + i * 105, { size: 18, color: MUTED, align: "right", family: HF.MONO });
+  });
+  ctx.globalAlpha = a;
+  HF.text(ctx, "0 ERRORS", 140, 1195, { size: 30, weight: 900, color: LIME, family: HF.MONO });
+  ctx.restore();
+}
+
+function drawCode(t, start, offset) {
+  const u = t - start;
+  const a = HF.smoothstep(0, 0.1, u);
+  const shown = Math.floor(HF.clamp((u - 0.04) / 0.5, 0, 1) * CODE.length);
+  ctx.save();
+  ctx.globalAlpha = a;
+  windowBox(70, 300, 940, 1250, "App.jsx — agent is writing");
+  HF.text(ctx, "src/App.jsx", 110, 410, { size: 15, color: MUTED, family: HF.MONO });
+  const lh = 62;
+  for (let i = 0; i < CODE.length; i++) {
+    if (i >= shown + offset) break;
+    const y = 500 + i * lh;
+    HF.text(ctx, String(i + 1).padStart(2, "0"), 120, y, { size: 14, color: "rgba(107,115,148,0.55)", family: HF.MONO, align: "right" });
+    ctx.textAlign = "left";
+    let x = 150;
+    for (const [txt, col] of CODE[i]) {
+      ctx.font = `600 25px ${HF.MONO}`;
+      ctx.fillStyle = col;
+      ctx.fillText(txt, x, y);
+      x += ctx.measureText(txt).width;
+    }
+  }
+  const blink = Math.sin(t * 9) > 0;
+  if (blink && shown < CODE.length) {
+    const y = 500 + Math.min(shown, CODE.length - 1) * lh;
+    ctx.fillStyle = LIME;
+    ctx.fillRect(150, y - 22, 14, 28);
+  }
+  HF.text(ctx, "AI WRITES · YOU REVIEW", 110, 1480, { size: 15, color: LIME, letterSpacing: 3 });
+  ctx.restore();
+}
+
+function drawDiff(t) {
+  const u = t - 11.25;
+  const a = HF.smoothstep(0, 0.1, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  windowBox(70, 360, 940, 1100, "git diff — unstaged");
+  const lines = [
+    ["-", "const rows = data.map(r => r.value);", PINK],
+    ["+", "const rows = data?.map(r => r?.value ?? 0) ?? [];", LIME],
+    [" ", "const total = rows.reduce((a, b) => a + b, 0);", INK],
+    ["+", "const safe = Number.isFinite(total) ? total : 0;", LIME],
+    [" ", "return <Chart rows={rows} total={total} />;", INK]
+  ];
+  lines.forEach((ln, i) => {
+    const y = 520 + i * 105;
+    const col = ln[2];
+    if (ln[0] !== " ") {
+      ctx.fillStyle = ln[0] === "+" ? "rgba(198,255,61,0.08)" : "rgba(255,92,138,0.08)";
+      ctx.fillRect(100, y - 48, 880, 78);
+    }
+    HF.text(ctx, ln[0], 130, y, { size: 30, color: col, family: HF.MONO });
+    HF.text(ctx, ln[1], 170, y, { size: 22, color: ln[0] === " " ? "rgba(242,244,255,0.65)" : col, family: HF.MONO });
+  });
+  const flash = 0.5 + 0.5 * Math.sin(t * 20);
+  HF.text(ctx, "2 LINES FIXED", 110, 1290, { size: 26, weight: 900, color: LIME, family: HF.MONO, alpha: 0.7 + 0.3 * flash });
+  ctx.restore();
+}
+
+function drawPass(t) {
+  const u = t - 13.125;
+  const a = HF.smoothstep(0, 0.1, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "TESTS", W / 2, 470, { size: 22, color: LIME, align: "center", letterSpacing: 8 });
+  glitch("12/12", W / 2, 760, 250, INK, 4);
+  HF.text(ctx, "PASSED", W / 2, 880, { size: 72, weight: 900, color: LIME, align: "center", letterSpacing: 12 });
+  const bars = 12;
+  for (let i = 0; i < bars; i++) {
+    const on = HF.clamp((u - 0.05 - i * 0.035) / 0.08, 0, 1);
+    const x = 120 + i * 70;
+    ctx.globalAlpha = a * on;
+    ctx.fillStyle = LIME;
+    ctx.fillRect(x, 1080 - 140 * on, 44, 140 * on);
+    ctx.fillStyle = "rgba(198,255,61,0.12)";
+    ctx.fillRect(x, 940, 44, 140);
+  }
+  ctx.globalAlpha = a;
+  HF.text(ctx, "0 REGRESSIONS", W / 2, 1190, { size: 20, color: MUTED, align: "center", letterSpacing: 4 });
+  ctx.restore();
+}
+
+function drawBuild(t) {
+  const u = t - 15.0;
+  const a = HF.smoothstep(0, 0.1, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  windowBox(70, 480, 940, 820, "zsh — build");
+  HF.text(ctx, "$ npm run build", 120, 650, { size: 32, color: INK, family: HF.MONO });
+  HF.text(ctx, "vite v7.1  building for production...", 120, 720, { size: 20, color: MUTED, family: HF.MONO });
+  const p = HF.clamp((u - 0.12) / 1.15, 0, 1);
+  ctx.fillStyle = "rgba(255,255,255,0.1)";
+  ctx.fillRect(120, 800, 760, 18);
+  ctx.fillStyle = LIME;
+  ctx.fillRect(120, 800, 760 * p, 18);
+  HF.text(ctx, Math.round(p * 100) + "%", 900, 790, { size: 20, color: LIME, align: "right", family: HF.MONO });
+  if (p > 0.99) {
+    HF.text(ctx, "✓ 421 modules transformed", 120, 900, { size: 22, color: "rgba(242,244,255,0.7)", family: HF.MONO });
+    HF.text(ctx, "✓ built in 1.2s", 120, 960, { size: 34, weight: 900, color: LIME, family: HF.MONO });
+  }
+  HF.text(ctx, "dist/index.html   1.8 kB", 120, 1080, { size: 18, color: MUTED, family: HF.MONO });
+  HF.text(ctx, "dist/assets.js  148.2 kB", 120, 1120, { size: 18, color: MUTED, family: HF.MONO });
+  ctx.restore();
+}
+
+function drawBuilt(t) {
+  const u = t - 16.875;
+  const a = HF.smoothstep(0, 0.1, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, "BUILD", W / 2, 520, { size: 22, color: LIME, align: "center", letterSpacing: 8 });
+  glitch("1.2s", W / 2, 850, 280, LIME, 5);
+  HF.text(ctx, "ZERO WARNINGS", W / 2, 990, { size: 26, color: MUTED, align: "center", letterSpacing: 6 });
+  ctx.restore();
+}
+
+function drawPush(t) {
+  const u = t - 18.75;
+  const a = HF.smoothstep(0, 0.1, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  windowBox(70, 560, 940, 640, "zsh — deploy");
+  HF.text(ctx, "$ git push origin main", 120, 740, { size: 34, color: INK, family: HF.MONO });
+  const dots = Math.floor(t * 6) % 4;
+  HF.text(ctx, "PUSHING" + ".".repeat(dots), 120, 830, { size: 26, color: LIME, family: HF.MONO });
+  const p = HF.clamp((u - 0.2) / 1.3, 0, 1);
+  HF.text(ctx, "objects  " + Math.round(p * 24) + "/24", 120, 940, { size: 20, color: MUTED, family: HF.MONO });
+  HF.text(ctx, "→ production", 120, 1040, { size: 26, color: VIOLET, family: HF.MONO });
+  ctx.restore();
+}
+
+function drawDeploy(t) {
+  const u = t - 20.625;
+  const a = HF.smoothstep(0, 0.08, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  glitch("DEPLOYED", W / 2, 900, 150, LIME, 7);
+  HF.text(ctx, "https://your-app.vercel.app", W / 2, 1030, { size: 26, color: INK, align: "center", family: HF.MONO });
+  HF.text(ctx, "LIVE IN 4.2s", W / 2, 1100, { size: 18, color: MUTED, align: "center", letterSpacing: 5 });
+  const tt = t - 20.625;
+  for (const c of CONFETTI) {
+    const y = ((c.y + c.vy * tt) % (H + 200)) - 100;
+    const x = W / 2 + (c.x - W / 2) + c.vx * tt;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(c.rot + c.vr * tt);
+    ctx.fillStyle = c.c;
+    ctx.globalAlpha = a * 0.9;
+    ctx.fillRect(-c.s / 2, -c.s / 2, c.s, c.s * 1.8);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawEnd(t) {
+  const u = t - 22.5;
+  const a = HF.smoothstep(0, 0.1, u);
+  ctx.save();
+  ctx.globalAlpha = a;
+  glitch("SHIP IT.", W / 2, 830, 190, INK, 4);
+  HF.text(ctx, "从一句话，到一个能打开的链接。", W / 2, 960, { size: 30, color: "rgba(242,244,255,0.7)", align: "center" });
+  HF.text(ctx, "下一句需求，见。", W / 2, 1040, { size: 26, color: LIME, align: "center", letterSpacing: 2 });
+  ctx.restore();
+}
+
+function drawUI(t) {
+  const el = Math.floor(t);
+  HF.text(ctx, "128 BPM", 56, 90, { size: 18, color: LIME, family: HF.MONO, letterSpacing: 2 });
+  HF.text(ctx, "VIBE CODING", W / 2, 90, { size: 16, color: MUTED, align: "center", letterSpacing: 6 });
+  HF.text(ctx, "00:" + String(el).padStart(2, "0") + " / 00:24", W - 56, 90, { size: 16, color: MUTED, align: "right", family: HF.MONO });
+
+  const p = HF.clamp(t / DUR, 0, 1);
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  ctx.fillRect(56, 130, W - 112, 4);
+  ctx.fillStyle = LIME;
+  ctx.fillRect(56, 130, (W - 112) * p, 4);
+
+  const bi = Math.floor(t / BEAT) % 4;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.arc(56 + i * 34, 180, 6, 0, Math.PI * 2);
+    ctx.fillStyle = i === bi ? LIME : "rgba(255,255,255,0.18)";
+    ctx.fill();
+  }
+
+  // bottom spectrum
+  const ph = (t / BEAT) % 1;
+  const kick = Math.exp(-ph * 4.5);
+  for (let i = 0; i < 64; i++) {
+    const v = 0.25 + 0.75 * Math.abs(Math.sin(i * 0.7 + t * 9)) * (0.35 + 0.65 * kick);
+    const h = 20 + v * 150;
+    ctx.fillStyle = i % 8 === 0 ? LIME : "rgba(139,107,255,0.75)";
+    ctx.fillRect(56 + i * 15, 1760 - h, 9, h);
+  }
+  HF.text(ctx, "BEAT-SYNCED CUTS · EVERY 2 BEATS", W / 2, 1840, { size: 12, color: MUTED, align: "center", letterSpacing: 3 });
+}
+
+function render(t) {
+  tNow = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  drawBG(t);
+
+  const z = 1 + 0.012 * Math.exp(-((t / BEAT) % 1) * 7);
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(z, z);
+  ctx.translate(-W / 2, -H / 2);
+
+  const s = sceneAt(t);
+  if (s === "count") drawCount(t);
+  else if (s === "title") drawTitle(t);
+  else if (s === "prompt") drawPrompt(t);
+  else if (s === "reply") drawReply(t);
+  else if (s === "code1") drawCode(t, 7.5, 0);
+  else if (s === "code2") drawCode(t, 7.5, 0);
+  else if (s === "diff") drawDiff(t);
+  else if (s === "pass") drawPass(t);
+  else if (s === "build") drawBuild(t);
+  else if (s === "built") drawBuilt(t);
+  else if (s === "push") drawPush(t);
+  else if (s === "deploy") drawDeploy(t);
+  else drawEnd(t);
+  ctx.restore();
+
+  drawUI(t);
+  HF.grain(ctx, t, 0.06);
+  HF.vignette(ctx, W, H);
+}
+
+window.render = render;
+window.__ready = true;
+</script>
+</body>
+</html>
