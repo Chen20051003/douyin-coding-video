@@ -1,8 +1,8 @@
 {
   "title": "未见面的缘分",
-  "voice": "zh-CN-XiaoxiaoNeural",
-  "rate": "+8%",
-  "pitch": "+2Hz",
+  "voice": "zh-CN-YunxiNeural",
+  "rate": "+4%",
+  "pitch": "-2Hz",
   "intro": 4.0,
   "outro": 4.0,
   "lines": [

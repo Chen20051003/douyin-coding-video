@@ -1,4 +1,4 @@
-"""104 BPM score for <未见面的缘分> + voiceover ducking mix.
+"""120 BPM score for <未见面的缘分> + voiceover ducking mix.
 
 The drum book is deliberately different from the earlier films:
 - taiko ostinato (0, 1.5, 2, 3.25 beats) instead of a plain four-on-floor
@@ -19,7 +19,7 @@ from audio import SR, bass_note, hat, kick, normalize, pad_chord, piano, place, 
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJ = ROOT / "projects" / "yuanfen"
-BPM = 104
+BPM = 120
 BEAT = 60 / BPM
 BAR = BEAT * 4
 
@@ -79,10 +79,10 @@ def compose(duration: float, bounds: list[float], labels: list[str]):
     wet = np.zeros((2, n))
 
     prog = [
-        ("Dm", [146.83, 174.61, 220.00, 293.66], 73.42),
-        ("Bb", [116.54, 146.83, 174.61, 233.08], 58.27),
+        ("Am", [220.00, 261.63, 329.63, 440.00], 110.00),
         ("F", [174.61, 220.00, 261.63, 349.23], 87.31),
-        ("C", [130.81, 164.81, 196.00, 261.63], 65.41),
+        ("C", [261.63, 329.63, 392.00, 523.25], 130.81),
+        ("G", [196.00, 246.94, 293.66, 392.00], 98.00),
     ]
 
     starts = [bounds[i] for i in range(len(labels))]
@@ -104,7 +104,7 @@ def compose(duration: float, bounds: list[float], labels: list[str]):
         # pad / choir
         if beat_in_bar == 0:
             pad = pad_chord(tones, BAR + 0.2, 1350 + 500 * e)
-            place(dry, pad, t0, 0, 0.055 + 0.045 * e)
+            place(dry, pad, t0, 0, 0.05 + 0.05 * e)
             place(wet, pad, t0, 0, 0.06 + 0.05 * e)
             if e >= 0.9:
                 choir = pad_chord([f * 2 for f in tones], BAR + 0.3, 1900)
@@ -121,8 +121,19 @@ def compose(duration: float, bounds: list[float], labels: list[str]):
                 pattern = [0, 2, 1, 3] if sec in ("question", "answer") else [0, 2, 3, 1]
                 f = tones[pattern[beat_in_bar % 4]] * (2 if beat_in_bar == 3 else 1)
                 note = piano(f, 2.4, 0.65)
-                place(dry, note, t0, -0.18 if beat_in_bar % 2 else 0.18, 0.075 + 0.02 * e)
+                place(dry, note, t0, -0.18 if beat_in_bar % 2 else 0.18, 0.09 + 0.02 * e)
                 place(wet, note, t0, 0, 0.1)
+
+        # 8th-note piano ostinato: the engine of the "燃" sections
+        if sec in ("light", "distance", "sync", "line"):
+            for k in range(8):
+                tt = t0 + k * BEAT / 2
+                if tt >= duration:
+                    break
+                f = tones[(0, 2, 1, 3, 2, 1, 3, 2)[k]] * (2 if k % 4 == 3 else 1)
+                nn = piano(f, 0.9, 0.5)
+                place(dry, nn, tt, -0.25 if k % 2 else 0.25, 0.035 + 0.01 * e)
+                place(wet, nn, tt, 0, 0.05)
 
         # strings
         if sec in ("answer", "light", "distance", "sync", "line", "outro"):
@@ -143,7 +154,7 @@ def compose(duration: float, bounds: list[float], labels: list[str]):
         # bass
         if sec in ("light", "distance", "sync", "line"):
             f = root * (2 if beat_in_bar == 3 else 1)
-            place(dry, bass_note(f, BEAT * 0.8, 180), t0, 0, 0.20 + 0.05 * e)
+            place(dry, bass_note(f, BEAT * 0.8, 180), t0, 0, 0.24 + 0.05 * e)
 
         # drums
         if sec == "hook":
@@ -154,18 +165,18 @@ def compose(duration: float, bounds: list[float], labels: list[str]):
             if beat_in_bar in (1, 3):
                 place(dry, taiko(0.32, 120, 62), t0, 0.15, 0.18)
         elif sec in ("light", "distance"):
-            place(dry, kick(0.4, 125, 44), t0, 0, 0.45 if sec == "light" else 0.38)
+            place(dry, kick(0.4, 125, 44), t0, 0, 0.50 if sec == "light" else 0.44)
             if beat_in_bar in (0, 2):
-                place(dry, taiko(0.55), t0, -0.2, 0.42)
+                place(dry, taiko(0.55), t0, -0.2, 0.36)
             if beat_in_bar in (1, 3):
                 place(dry, clap(), t0, 0.1, 0.22)
         elif sec in ("sync", "line"):
-            place(dry, kick(0.42, 135, 43), t0, 0, 0.52)
+            place(dry, kick(0.42, 135, 43), t0, 0, 0.56)
             if sec == "line" and beat_in_bar == 3:
                 place(dry, kick(0.3, 120, 48), t0, 0, 0.22)  # ghost kick
             # taiko syncopation: 0, 1.5, 2, 3.25 beats
             if beat_in_bar in (0, 2):
-                place(dry, taiko(0.6), t0, -0.25 if beat_in_bar == 0 else 0.25, 0.5)
+                place(dry, taiko(0.6), t0, -0.25 if beat_in_bar == 0 else 0.25, 0.42)
             if beat_in_bar == 1:
                 place(dry, taiko(0.5, 105, 58), t0 + BEAT * 0.5, 0.25, 0.40)
             if beat_in_bar == 3:
@@ -275,10 +286,10 @@ def main():
     k = int(0.06 * SR)
     env = np.convolve(np.abs(mono), np.ones(k) / k, mode="same")
     env = env / (env.max() + 1e-9)
-    duck = 1.0 - 0.52 * np.clip(env * 3.0, 0, 1)
+    duck = 1.0 - 0.64 * np.clip(env * 3.4, 0, 1)
     music_d = music * duck
 
-    mix = voice * 1.14 + music_d * 0.55
+    mix = voice * 1.5 + music_d * 0.38
     mix = np.tanh(mix * 1.1) / np.tanh(1.1)
     mix = normalize(mix, 0.9)
     write_wav(PROJ / "mix.wav", mix)

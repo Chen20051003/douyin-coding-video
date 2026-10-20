@@ -82,13 +82,19 @@ async def main():
     VOICE_DIR.mkdir(parents=True, exist_ok=True)
     lines = cfg["lines"]
     timings = []
+    sigs = {}
     cursor = float(cfg.get("intro", 1.2))
 
     for i, line in enumerate(lines):
         mp3 = VOICE_DIR / f"line_{i:02d}.mp3"
         wav = VOICE_DIR / f"line_{i:02d}.wav"
-        await synthesize(line["cn"], cfg["voice"], cfg["rate"], cfg["pitch"], mp3)
+        if not mp3.exists():
+            await synthesize(line["cn"], cfg["voice"], cfg["rate"], cfg["pitch"], mp3)
         decode(mp3, wav)
+        sig = read_wav(wav)
+        rms = float(np.sqrt(np.mean(sig ** 2))) or 1e-9
+        peak = float(np.max(np.abs(sig))) or 1e-9
+        sigs[i] = sig * min(0.13 / rms, 0.95 / peak)
         dur = ffprobe_duration(wav)
         start = cursor
         end = start + dur
@@ -109,7 +115,7 @@ async def main():
     n = int(total * SR)
     buf = np.zeros(n, dtype=np.float32)
     for line, tm in zip(lines, timings):
-        sig = read_wav(VOICE_DIR / f"line_{tm['i']:02d}.wav")
+        sig = sigs[tm["i"]]
         a = int(tm["start"] * SR)
         b = min(n, a + len(sig))
         if b <= a:
@@ -142,7 +148,7 @@ async def main():
         "rate": cfg["rate"],
         "pitch": cfg["pitch"],
         "duration": duration,
-        "bpm": 104,
+        "bpm": 120,
         "lines": timings,
     }
     (PROJ / "timing.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")

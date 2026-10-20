@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = {"knowledge": (77, 126.0), "beat": (128, 24.0), "music": (96, 30.0), "yuanfen": (104, 73.84)}
+EXPECTED = {"knowledge": (77, 126.0), "beat": (128, 24.0), "music": (96, 30.0), "yuanfen": (120, 79.53)}
 errors = []
 
 for name, (bpm, dur) in EXPECTED.items():
