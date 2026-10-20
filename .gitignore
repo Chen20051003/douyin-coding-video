@@ -15,3 +15,5 @@ projects/yuanfen/voice/*.wav
 
 tools/
 .github/workflows/
+
+research/ref_bgm.mp3

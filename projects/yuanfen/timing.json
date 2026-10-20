@@ -1,9 +1,9 @@
 {
   "title": "未见面的缘分",
-  "voice": "zh-CN-YunxiNeural",
-  "rate": "+4%",
-  "pitch": "-2Hz",
-  "duration": 79.535,
+  "voice": "zh-CN-YunjianNeural",
+  "rate": "-2%",
+  "pitch": "-3Hz",
+  "duration": 86.148,
   "bpm": 120,
   "lines": [
     {
@@ -12,8 +12,8 @@
       "en": "You have never met.",
       "scene": "hook",
       "start": 4.0,
-      "end": 6.544,
-      "duration": 2.544,
+      "end": 6.784,
+      "duration": 2.784,
       "file": "voice/line_00.wav"
     },
     {
@@ -21,9 +21,9 @@
       "cn": "却能在同一个深夜，同时亮起。",
       "en": "Yet you light up in the same late night.",
       "scene": "hook",
-      "start": 6.994,
-      "end": 10.33,
-      "duration": 3.336,
+      "start": 7.234,
+      "end": 10.978,
+      "duration": 3.744,
       "file": "voice/line_01.wav"
     },
     {
@@ -31,9 +31,9 @@
       "cn": "有人问：网上的朋友，算缘分吗？",
       "en": "Someone asks: is an online friend fate?",
       "scene": "question",
-      "start": 10.78,
-      "end": 14.74,
-      "duration": 3.96,
+      "start": 11.428,
+      "end": 15.436,
+      "duration": 4.008,
       "file": "voice/line_02.wav"
     },
     {
@@ -41,9 +41,9 @@
       "cn": "毕竟，缘分总该有一个地点。",
       "en": "After all, fate should have an address.",
       "scene": "question",
-      "start": 15.19,
-      "end": 18.214,
-      "duration": 3.024,
+      "start": 15.886,
+      "end": 19.246,
+      "duration": 3.36,
       "file": "voice/line_03.wav"
     },
     {
@@ -51,9 +51,9 @@
       "cn": "可缘分，从来不只是同一个地点。",
       "en": "But fate was never only one place.",
       "scene": "answer",
-      "start": 19.014,
-      "end": 22.302,
-      "duration": 3.288,
+      "start": 20.046,
+      "end": 23.718,
+      "duration": 3.672,
       "file": "voice/line_04.wav"
     },
     {
@@ -61,9 +61,9 @@
       "cn": "它也许是穿过屏幕的一束光。",
       "en": "Maybe it is a beam of light through the screen.",
       "scene": "light",
-      "start": 23.002,
-      "end": 26.146,
-      "duration": 3.144,
+      "start": 24.418,
+      "end": 28.018,
+      "duration": 3.6,
       "file": "voice/line_05.wav"
     },
     {
@@ -71,9 +71,9 @@
       "cn": "在你最累的时候，刚好照进来。",
       "en": "It lands right when you are most tired.",
       "scene": "light",
-      "start": 26.596,
-      "end": 29.74,
-      "duration": 3.144,
+      "start": 28.468,
+      "end": 32.212,
+      "duration": 3.744,
       "file": "voice/line_06.wav"
     },
     {
@@ -81,9 +81,9 @@
       "cn": "它也许是两个大脑的同频。",
       "en": "Maybe it is two minds on one frequency.",
       "scene": "light",
-      "start": 30.19,
-      "end": 32.926,
-      "duration": 2.736,
+      "start": 32.662,
+      "end": 35.782,
+      "duration": 3.12,
       "file": "voice/line_07.wav"
     },
     {
@@ -91,9 +91,9 @@
       "cn": "你打出一句话，他就懂了下一句。",
       "en": "You type one line; he already knows the next.",
       "scene": "light",
-      "start": 33.376,
-      "end": 36.808,
-      "duration": 3.432,
+      "start": 36.232,
+      "end": 39.856,
+      "duration": 3.624,
       "file": "voice/line_08.wav"
     },
     {
@@ -101,9 +101,9 @@
       "cn": "距离，从来不是友谊的悬崖。",
       "en": "Distance was never the cliff of friendship.",
       "scene": "distance",
-      "start": 37.508,
-      "end": 40.7,
-      "duration": 3.192,
+      "start": 40.556,
+      "end": 43.772,
+      "duration": 3.216,
       "file": "voice/line_09.wav"
     },
     {
@@ -111,9 +111,9 @@
       "cn": "它只是一条，还没被点亮的线。",
       "en": "It is only a line, not yet lit.",
       "scene": "distance",
-      "start": 41.15,
-      "end": 44.342,
-      "duration": 3.192,
+      "start": 44.222,
+      "end": 47.678,
+      "duration": 3.456,
       "file": "voice/line_10.wav"
     },
     {
@@ -121,9 +121,9 @@
       "cn": "你们分享过同一首歌。",
       "en": "You have shared the same song.",
       "scene": "distance",
-      "start": 44.792,
-      "end": 47.12,
-      "duration": 2.328,
+      "start": 48.128,
+      "end": 50.888,
+      "duration": 2.76,
       "file": "voice/line_11.wav"
     },
     {
@@ -131,9 +131,9 @@
       "cn": "同一场失眠，同一个笑话。",
       "en": "The same insomnia, the same joke.",
       "scene": "sync",
-      "start": 47.57,
-      "end": 50.498,
-      "duration": 2.928,
+      "start": 51.338,
+      "end": 54.818,
+      "duration": 3.48,
       "file": "voice/line_12.wav"
     },
     {
@@ -141,9 +141,9 @@
       "cn": "也交换过，现实里不敢说出口的脆弱。",
       "en": "And traded fragility you could not say aloud.",
       "scene": "sync",
-      "start": 50.948,
-      "end": 55.004,
-      "duration": 4.056,
+      "start": 55.268,
+      "end": 59.564,
+      "duration": 4.296,
       "file": "voice/line_13.wav"
     },
     {
@@ -151,9 +151,9 @@
       "cn": "没有见过面，不代表没有见过彼此。",
       "en": "Not meeting does not mean never seeing each other.",
       "scene": "sync",
-      "start": 55.454,
-      "end": 58.886,
-      "duration": 3.432,
+      "start": 60.014,
+      "end": 63.83,
+      "duration": 3.816,
       "file": "voice/line_14.wav"
     },
     {
@@ -161,9 +161,9 @@
       "cn": "真正的缘分，不是住在同一个城市。",
       "en": "Real fate is not living in the same city.",
       "scene": "line",
-      "start": 59.336,
-      "end": 62.936,
-      "duration": 3.6,
+      "start": 64.28,
+      "end": 68.264,
+      "duration": 3.984,
       "file": "voice/line_15.wav"
     },
     {
@@ -171,9 +171,9 @@
       "cn": "而是隔着几千公里，还愿意为你亮着。",
       "en": "It is staying lit for you across thousands of miles.",
       "scene": "line",
-      "start": 63.386,
-      "end": 67.082,
-      "duration": 3.696,
+      "start": 68.714,
+      "end": 73.058,
+      "duration": 4.344,
       "file": "voice/line_16.wav"
     },
     {
@@ -181,9 +181,9 @@
       "cn": "所以，别再说那不算朋友。",
       "en": "So stop saying it does not count.",
       "scene": "line",
-      "start": 67.532,
-      "end": 70.916,
-      "duration": 3.384,
+      "start": 73.508,
+      "end": 76.868,
+      "duration": 3.36,
       "file": "voice/line_17.wav"
     },
     {
@@ -191,9 +191,9 @@
       "cn": "你们只是，还没见面。",
       "en": "You simply have not met yet.",
       "scene": "outro",
-      "start": 71.716,
-      "end": 74.572,
-      "duration": 2.856,
+      "start": 77.668,
+      "end": 80.62,
+      "duration": 2.952,
       "file": "voice/line_18.wav"
     },
     {
@@ -201,9 +201,9 @@
       "cn": "致每一个，未见面的朋友。",
       "en": "To every friend we have not met.",
       "scene": "outro",
-      "start": 75.022,
-      "end": 77.998,
-      "duration": 2.976,
+      "start": 81.07,
+      "end": 84.55,
+      "duration": 3.48,
       "file": "voice/line_19.wav"
     }
   ]

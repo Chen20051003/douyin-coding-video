@@ -1,62 +1,62 @@
 {
   "title": "未见面的缘分",
-  "bpm": 120,
-  "beat_seconds": 0.5,
-  "duration": 79.535,
+  "bpm": 112,
+  "beat_seconds": 0.5357,
+  "duration": 86.148,
   "sections": [
     {
       "label": "hook",
       "start": 0.0,
-      "end": 10.78
+      "end": 11.428
     },
     {
       "label": "question",
-      "start": 10.78,
-      "end": 19.014
+      "start": 11.428,
+      "end": 20.046
     },
     {
       "label": "answer",
-      "start": 19.014,
-      "end": 23.002
+      "start": 20.046,
+      "end": 24.418
     },
     {
       "label": "light",
-      "start": 23.002,
-      "end": 37.508
+      "start": 24.418,
+      "end": 40.556
     },
     {
       "label": "distance",
-      "start": 37.508,
-      "end": 47.57
+      "start": 40.556,
+      "end": 51.338
     },
     {
       "label": "sync",
-      "start": 47.57,
-      "end": 59.336
+      "start": 51.338,
+      "end": 64.28
     },
     {
       "label": "line",
-      "start": 59.336,
-      "end": 71.716
+      "start": 64.28,
+      "end": 77.668
     },
     {
       "label": "outro",
-      "start": 71.716,
-      "end": 79.535
+      "start": 77.668,
+      "end": 86.148
     }
   ],
   "voice": {
     "file": "voice.wav",
-    "sha256": "4f3b5f87a52a25c27f46f5a16c7c0f1529571eaeead2064fd32eb72d62e0fb94",
+    "sha256": "9f904e25d42e0552669962659780da8031c6a56c4a5ada0e2237173a387e546d",
     "lines": 20
   },
   "music": {
     "file": "music.wav",
-    "sha256": "4f3e4e6d0064070e3e26af752b302d0a48107086edb486c2e46a71356ad12f53"
+    "sha256": "c1b6a989923974b0774189b2cbe226d868d97d48c81b16c52d0d949b214e0ec0"
   },
   "mix": {
     "file": "mix.wav",
-    "sha256": "19cfab6f7a4f76ce45c4b9d26377124b0f0e37e5c4122370aeab211d179e5e90"
+    "sha256": "5a4281b084905923206bfd6fb685855d64e3e46419f7e5a38d920e2453c6b7b4"
   },
   "generator": "engine/yuanfen_audio.py (numpy, no samples)"
 }

@@ -1,7 +1,7 @@
 # 抖音短视频 · 四条成片 + 可复用技能
 
 > 目标：把「抖音上最火的编程软件」与「未见面的缘分」做成四条可直接发布的代码生成视频——
-> **知识大赏横屏**、**128 BPM 卡点竖屏**、**96 BPM AI 音乐可视化竖屏**、**120 BPM 配音情感短片**。
+> **知识大赏横屏**、**128 BPM 卡点竖屏**、**96 BPM AI 音乐可视化竖屏**、**112 BPM 配音情感短片**。
 > 同时把方法论封装成 Agent Skill，并准备一键部署到 GitHub。
 
 ## 交付物
@@ -11,7 +11,7 @@
 | 01 | `out/01_知识大赏_快是被设计出来的.mp4` | 1920×1080 / 30fps / 126s | 逆向拆解 AI 编程软件的三层加速：索引、生成、上下文内存 |
 | 02 | `out/02_卡点_VIBE_CODING_128BPM.mp4` | 1080×1920 / 30fps / 24s | 一句话 → 生成 → 测试 → 构建 → 上线，每 2 拍一刀 |
 | 03 | `out/03_AI音乐_代码合成.mp4` | 1080×1920 / 30fps / 30s | 64 段频谱驱动的 AI 音乐可视化，drop 对齐 15s |
-| 04 | `out/04_未见面的缘分.mp4` | 1920×1080 / 30fps / 79.5s | 120BPM 钢琴/弦乐/四踩/太鼓 + 男声 Yunxi，关于屏幕两端的友谊 |
+| 04 | `out/04_未见面的缘分.mp4` | 1920×1080 / 30fps / 86.2s | 112BPM 太鼓脉冲 + 钢琴/弦乐 + 男声 Yunjian，关于屏幕两端的友谊 |
 
 每条片子都包含：`index.html` 源码、`audio.wav` 合成音轨、`audio.json` 乐谱元数据、`qa.json` 技术质检、关键帧截图。
 
@@ -33,11 +33,11 @@ python engine/capture.py --html projects/knowledge/index.html `
 python engine/capture.py --html projects/knowledge/index.html `
   --out out/knowledge/frames --width 1920 --height 1080 --duration 126 --fps 30
 
-# 4b) 配音版：TTS → 120BPM 编曲 → 渲染 → 编码
+# 4b) 配音版：TTS → 112BPM 编曲 → 渲染 → 编码
 python engine/tts.py
 python engine/yuanfen_audio.py
 python engine/capture.py --html projects/yuanfen/index.html `
-  --out out/yuanfen/frames --width 1920 --height 1080 --duration 79.53 --fps 30
+  --out out/yuanfen/frames --width 1920 --height 1080 --duration 86.15 --fps 30
 python engine/encode.py --frames out/yuanfen/frames `
   --audio projects/yuanfen/mix.wav --out out/yuanfen.mp4 --lufs -14
 
@@ -77,10 +77,10 @@ powershell -ExecutionPolicy Bypass -File scripts/render_all.ps1
 
 ### 04 未见面的缘分 · 配音情感短片
 
-- 1920×1080，79.5 秒，120 BPM，A 小调；金色衬线片名 + 男声配音 + 英文斜体字幕。
-- **配音**：Edge TTS `zh-CN-YunxiNeural`（Sunshine），语速 +4%、音高 −2Hz；20 句独立生成并逐句响度归一化，句级时间轴写入 `timing.js`。
-- **鼓点重编**：四踩打底，太鼓切分 0 / 1.5 / 2 / 3.25 拍；钢琴 8 分固定音型 + 弦乐铺底；两次 16 分军鼓滚奏推进 drop；sync/line 段加 ghost kick 与 16 分踩镲。
-- **混音**：人声出现时音乐 duck 约 36%；段落 RMS 从 −20.1 dB 推到 −14.9 dB，再回落到 −16.2 dB。
+- 1920×1080，86.2 秒，112 BPM，F 小调；金色衬线片名 + 男声配音 + 英文斜体字幕。
+- **配音**：Edge TTS `zh-CN-YunjianNeural`（Passion），语速 −2%、音高 −3Hz；20 句独立生成并逐句响度归一化，句级时间轴写入 `timing.js`。
+- **鼓点重编**：按参考原声实测改为 112 BPM / F 小调；8 分音符太鼓脉冲打底，2/4 拍 clap；钢琴 8 分固定音型 + 弦乐铺底；不做四踩 EDM。
+- **混音**：人声出现时音乐 duck 约 36%；段落 RMS 从 −17.1 dB 推到 −14.5 dB，再回落到 −15.9 dB。
 - **画面**：两枚光点 → 地点问号 → 穿过屏幕的光 → 双脑同频 → 悬崖之间点亮的线 → 致意卡。
 
 ## 技能检索（GitHub 优先）
@@ -116,7 +116,7 @@ powershell -ExecutionPolicy Bypass -File scripts/render_all.ps1
 | 01 知识大赏 | 126.0s | 19.1 MB | H.264 High / yuv420p / 30fps | −14.0 LUFS | −2.3 dBTP | 0.785 | 0 / 0 |
 | 02 卡点 | 24.0s | 6.9 MB | H.264 High / yuv420p / 30fps | −14.5 LUFS | −1.4 dBTP | 0.191 | 0 / 0 |
 | 03 AI 音乐 | 30.0s | 13.8 MB | H.264 High / yuv420p / 30fps | −14.6 LUFS | −1.6 dBTP | 0.000 | 0 / 0 |
-| 04 未见面的缘分 | 79.5s | 17.0 MB | H.264 High / yuv420p / 30fps | −14.1 LUFS | −2.2 dBTP | 0.734 | 0 / 0 |
+| 04 未见面的缘分 | 86.2s | 23.4 MB | H.264 High / yuv420p / 30fps | −14.1 LUFS | −3.1 dBTP | 0.649 | 0 / 0 |
 
 \* 静态比 = 2fps 采样、480×270 缩略图相邻帧平均亮度差 < 1.0 的比例。知识片与缘分片是深色稀疏构图，指标偏高；实际 30fps 有颗粒、尘埃、扫描光带与场景动画，未用该指标冒充“画面密度达标”。
 
@@ -134,6 +134,6 @@ powershell -ExecutionPolicy Bypass -File scripts/render_all.ps1
 
 - 所有画面由 Canvas/HTML 代码生成，无实拍、无第三方视频素材。
 - 所有音乐由 `engine/audio.py` / `engine/yuanfen_audio.py` 逐样本合成，无采样、无版权曲库；`audio.json` 记录 BPM、调性、段落与 SHA-256。
-- 配音由 Edge TTS 合成（`zh-CN-YunxiNeural`），不是真人；片尾与 README 均已标注。
+- 配音由 Edge TTS 合成（`zh-CN-YunjianNeural`），不是真人；片尾与 README 均已标注。
 - 风格参考抖音「Vibe 知识大赏」系列（@Iwanau / @Juno / 叁号暗房），只借鉴版式与方法，不复制原片。
 - 产品名与数据来自公开文档，界面为示意；发布前请自行复核引用与平台条款。

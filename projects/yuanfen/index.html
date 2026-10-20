@@ -17,7 +17,7 @@
 <script>
 const W = 1920, H = 1080, DUR = window.TIMING.duration;
 const L = window.TIMING.lines;
-const BEAT = 60 / 104;
+const BEAT = 60 / 112;
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
 const GOLD = "#E8C07A", INK = "#F2F0FA", MUTED = "#8A8AA0", CYAN = "#7FD6FF", RED = "#FF7B6B";
@@ -48,6 +48,14 @@ const CHAPTERS = {
 };
 
 const STARS = HF.stars(200, 77);
+const BOKEH = (() => {
+  const r = HF.rng(909);
+  const a = [];
+  for (let i = 0; i < 26; i++) {
+    a.push({ x: r() * W, y: r() * H, r: 18 + r() * 58, vx: (r() - 0.5) * 8, vy: -2 - r() * 6, p: r() * 6.28 });
+  }
+  return a;
+})();
 const MAP = (() => {
   const r = HF.rng(404);
   const a = [];
@@ -83,6 +91,59 @@ function sceneAt(t) {
 }
 function pulse(t) {
   return Math.exp(-((t / BEAT) % 1) * 5);
+}
+
+function cameraFor(t, s) {
+  const span = Math.max(0.01, S[s][1] - S[s][0]);
+  const p = HF.clamp((t - S[s][0]) / span, 0, 1);
+  const beat = Math.exp(-((t / BEAT) % 1) * 8);
+  return {
+    zoom: 1.045 + 0.052 * p + 0.006 * Math.sin(t * 0.8) + 0.007 * beat,
+    x: Math.sin(t * 0.24) * 9,
+    y: Math.cos(t * 0.19) * 7
+  };
+}
+
+const GHOST = { title: "缘", hook: "缘", question: "?", answer: "不", light: "光", distance: "崖", sync: "频", line: "线", outro: "缘" };
+function drawGhost(t, s) {
+  const w = GHOST[s];
+  if (!w) return;
+  const u = t - S[s][0], d = S[s][1] - S[s][0];
+  const a = 0.045 * HF.smoothstep(0, 0.8, u) * (1 - HF.smoothstep(d - 0.8, d, u));
+  ctx.save();
+  ctx.globalAlpha = a;
+  HF.text(ctx, w, W / 2, 600, { size: 760, weight: 900, color: GOLD, align: "center", family: SERIF });
+  ctx.restore();
+}
+
+function drawBokeh(t) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const b of BOKEH) {
+    const y = ((b.y + t * b.vy) % (H + 200) + H + 200) % (H + 200) - 100;
+    const x = b.x + Math.sin(t * 0.2 + b.p) * 30 + t * b.vx;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, b.r);
+    g.addColorStop(0, "rgba(232,192,122,0.10)");
+    g.addColorStop(0.5, "rgba(127,214,255,0.045)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x - b.r, y - b.r, b.r * 2, b.r * 2);
+  }
+  ctx.restore();
+}
+
+function drawFlash(t) {
+  const cuts = [4.0, S.hook[1], S.question[1], S.answer[1], S.light[1], S.distance[1], S.sync[1], S.line[1]];
+  for (const c of cuts) {
+    const u = t - c;
+    if (u >= 0 && u < 0.14) {
+      ctx.save();
+      ctx.globalAlpha = 0.07 * (1 - u / 0.14);
+      ctx.fillStyle = "#E8C07A";
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
 }
 
 function drawBG(t) {
@@ -421,7 +482,7 @@ function drawSync(t) {
     HF.text(ctx, w[0], w[1], w[2], { size: 26, weight: 600, color: w[3], align: "center", alpha: a * on });
   });
 
-  HF.text(ctx, "同频", W / 2, 760, { size: 110, weight: 900, color: "rgba(242,240,250,0.10)", align: "center", family: SERIF });
+  // the giant ghost 频 already carries the motif; no duplicate watermark
   ctx.restore();
 }
 
@@ -519,6 +580,13 @@ function render(t) {
   drawBG(t);
 
   const s = sceneAt(t);
+  const cam = cameraFor(t, s);
+  ctx.save();
+  ctx.translate(W / 2 + cam.x, H / 2 + cam.y);
+  ctx.scale(cam.zoom, cam.zoom);
+  ctx.translate(-W / 2, -H / 2);
+  drawGhost(t, s);
+
   if (s === "title") drawTitleCard(t);
   else if (s === "hook") drawHook(t);
   else if (s === "question") drawQuestion(t);
@@ -528,8 +596,11 @@ function render(t) {
   else if (s === "sync") drawSync(t);
   else if (s === "line") drawLine(t);
   else drawOutro(t);
+  ctx.restore();
 
+  drawBokeh(t);
   drawWipe(t);
+  drawFlash(t);
 
   HF.header(ctx, "@VIBE 知识大赏", CHAPTERS[s] || "", "A FILM ABOUT UNSEEN FRIENDS", W);
 

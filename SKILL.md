@@ -1,6 +1,6 @@
 ---
 name: douyin-coding-video
-description: "抖音情绪/知识类短视频的纯代码生成流水线：知识大赏横屏、128BPM 卡点、96BPM AI 音乐可视化、120BPM 配音情感短片。当用户要「做一条抖音知识视频」「知识大赏风格」「卡点视频」「AI 音乐视频」「未见面的缘分/情感旁白视频」时使用。画面由 Canvas/HTML 代码生成，音乐由 numpy 逐样本合成，配音可用 Edge TTS。"
+description: "抖音情绪/知识类短视频的纯代码生成流水线：知识大赏横屏、128BPM 卡点、96BPM AI 音乐可视化、112BPM 配音情感短片。当用户要「做一条抖音知识视频」「知识大赏风格」「卡点视频」「AI 音乐视频」「未见面的缘分/情感旁白视频」时使用。画面由 Canvas/HTML 代码生成，音乐由 numpy 逐样本合成，配音可用 Edge TTS。"
 version: "1.0.0"
 ---
 
@@ -81,10 +81,10 @@ python engine/encode.py --frames out/knowledge/frames `
   --audio projects/knowledge/audio.wav --out out/knowledge.mp4 --lufs -14
 ```
 
-- 知识大赏：77 BPM，A 小调，pad + 钢琴 + 低音提琴 + 轻打击。
+- 知识大赏：77 BPM，F 小调，pad + 钢琴 + 低音提琴 + 轻打击。
 - 卡点：128 BPM，F 小调，四踩 + 军鼓 + 8 分音符贝斯 + 琶音。
 - AI 音乐：96 BPM，C# 小调，supersaw + sidechain + drop。
-- 情感短片：120 BPM，D 小调，太鼓 0/1.5/2/3.25 拍 + 四踩 + 弦乐固定音型；人声出现时 duck 38%。
+- 情感短片：112 BPM，D 小调，太鼓 0/1.5/2/3.25 拍 + 四踩 + 弦乐固定音型；人声出现时 duck 38%。
 - 响度：知识 −14 LUFS，卡点/音乐/情感 −12～−14 LUFS，True Peak ≤ −1.2 dBFS。
 
 ### 配音版（`projects/yuanfen` 为范本）
@@ -92,11 +92,11 @@ python engine/encode.py --frames out/knowledge/frames `
 ```powershell
 # 1) 逐句 TTS + 句级时间轴（Edge TTS）
 python engine/tts.py
-# 2) 120BPM 编曲 + 人声 ducking 混音
+# 2) 112BPM 编曲 + 人声 ducking 混音
 python engine/yuanfen_audio.py
 # 3) 画面读 timing.js，按句切场景
 python engine/capture.py --html projects/yuanfen/index.html `
-  --out out/yuanfen/frames --width 1920 --height 1080 --duration 79.53 --fps 30
+  --out out/yuanfen/frames --width 1920 --height 1080 --duration 86.15 --fps 30
 # 4) 编码 + 质检
 python engine/encode.py --frames out/yuanfen/frames `
   --audio projects/yuanfen/mix.wav --out out/yuanfen.mp4 --lufs -14

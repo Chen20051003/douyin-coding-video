@@ -19,7 +19,7 @@ from audio import SR, bass_note, hat, kick, normalize, pad_chord, piano, place, 
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJ = ROOT / "projects" / "yuanfen"
-BPM = 120
+BPM = 112
 BEAT = 60 / BPM
 BAR = BEAT * 4
 
@@ -79,10 +79,10 @@ def compose(duration: float, bounds: list[float], labels: list[str]):
     wet = np.zeros((2, n))
 
     prog = [
-        ("Am", [220.00, 261.63, 329.63, 440.00], 110.00),
-        ("F", [174.61, 220.00, 261.63, 349.23], 87.31),
-        ("C", [261.63, 329.63, 392.00, 523.25], 130.81),
-        ("G", [196.00, 246.94, 293.66, 392.00], 98.00),
+        ("Fm", [174.61, 207.65, 261.63, 349.23], 87.31),
+        ("Db", [138.59, 174.61, 207.65, 277.18], 69.30),
+        ("Ab", [207.65, 261.63, 311.13, 415.30], 103.83),
+        ("Eb", [155.56, 196.00, 233.08, 311.13], 77.78),
     ]
 
     starts = [bounds[i] for i in range(len(labels))]
@@ -142,59 +142,44 @@ def compose(duration: float, bounds: list[float], labels: list[str]):
                 place(dry, st, t0, 0, 0.05 + 0.03 * e)
                 place(wet, st, t0, 0, 0.06)
             if sec in ("sync", "line"):
-                for k in range(4):
-                    tt = t0 + k * BEAT / 4
+                for k in range(2):
+                    tt = t0 + k * BEAT / 2
                     if tt >= duration:
                         break
-                    f = tones[(0, 2, 1, 2)[k]] * 2
-                    os_ = string_note(f, BEAT / 4 * 0.9, 2200)
-                    place(dry, os_, tt, -0.25 if k % 2 else 0.25, 0.028)
-                    place(wet, os_, tt, 0, 0.035)
+                    f = tones[(0, 2)[k]] * 2
+                    os_ = string_note(f, BEAT / 2 * 0.85, 2200)
+                    place(dry, os_, tt, -0.25 if k % 2 else 0.25, 0.032)
+                    place(wet, os_, tt, 0, 0.04)
 
         # bass
         if sec in ("light", "distance", "sync", "line"):
             f = root * (2 if beat_in_bar == 3 else 1)
             place(dry, bass_note(f, BEAT * 0.8, 180), t0, 0, 0.24 + 0.05 * e)
 
-        # drums
+        # drums: steady 8th-note taiko pulse (reference DNA), kick on 1/3
         if sec == "hook":
             if beat_in_bar in (0, 2):
-                place(dry, kick(0.5, 100, 42), t0, 0, 0.34)
-        elif sec in ("question", "answer"):
-            place(dry, taiko(0.5), t0, -0.1, 0.26)
-            if beat_in_bar in (1, 3):
-                place(dry, taiko(0.32, 120, 62), t0, 0.15, 0.18)
-        elif sec in ("light", "distance"):
-            place(dry, kick(0.4, 125, 44), t0, 0, 0.50 if sec == "light" else 0.44)
+                place(dry, kick(0.5, 100, 42), t0, 0, 0.32)
+                place(dry, taiko(0.55, 90, 50), t0, -0.1, 0.20)
+        else:
+            for k in range(2):
+                tt = t0 + k * BEAT / 2
+                g = 0.30 if (beat_in_bar in (0, 2) and k == 0) else 0.16
+                place(dry, taiko(0.38, 95, 52), tt, -0.15 if k == 0 else 0.15, g)
             if beat_in_bar in (0, 2):
-                place(dry, taiko(0.55), t0, -0.2, 0.36)
+                place(dry, kick(0.45, 115, 45), t0, 0, 0.40)
             if beat_in_bar in (1, 3):
-                place(dry, clap(), t0, 0.1, 0.22)
-        elif sec in ("sync", "line"):
-            place(dry, kick(0.42, 135, 43), t0, 0, 0.56)
-            if sec == "line" and beat_in_bar == 3:
-                place(dry, kick(0.3, 120, 48), t0, 0, 0.22)  # ghost kick
-            # taiko syncopation: 0, 1.5, 2, 3.25 beats
-            if beat_in_bar in (0, 2):
-                place(dry, taiko(0.6), t0, -0.25 if beat_in_bar == 0 else 0.25, 0.42)
-            if beat_in_bar == 1:
-                place(dry, taiko(0.5, 105, 58), t0 + BEAT * 0.5, 0.25, 0.40)
-            if beat_in_bar == 3:
-                place(dry, taiko(0.45, 115, 62), t0 + BEAT * 0.25, -0.25, 0.34)
-            if beat_in_bar in (1, 3):
-                place(dry, clap(), t0, 0.1, 0.3)
-            if beat_in_bar == 2:
-                place(dry, hat(0.05, open_=True), t0, 0.25, 0.12)
-        elif sec == "outro":
-            if beat_in_bar in (0, 2):
-                place(dry, taiko(0.7, 80, 45), t0, -0.1, 0.22)
+                place(dry, clap(), t0, 0.1, 0.22 if sec in ("question", "answer") else 0.28)
+            if sec in ("sync", "line") and beat_in_bar == 3:
+                place(dry, taiko(0.3, 120, 62), t0 + BEAT * 0.25, 0.2, 0.22)
+        if sec == "outro" and beat_in_bar in (0, 2):
+            place(dry, taiko(0.7, 80, 45), t0, -0.1, 0.22)
 
         # hats
         if sec in ("light", "distance", "sync", "line"):
-            place(dry, hat(0.03), t0 + BEAT / 2, 0.3, 0.05 + 0.03 * e)
-            if sec == "line":
-                place(dry, hat(0.02), t0 + BEAT / 4, -0.3, 0.025)
-                place(dry, hat(0.02), t0 + BEAT * 0.75, -0.3, 0.025)
+            place(dry, hat(0.03), t0 + BEAT / 2, 0.3, 0.04 + 0.02 * e)
+            if sec in ("sync", "line"):
+                place(dry, hat(0.02), t0 + BEAT / 4, -0.3, 0.02)
 
     # build rolls into the two drops
     for target, length in ((bounds[3], 2.0), (bounds[5], 3.0), (bounds[6], 2.0)):
