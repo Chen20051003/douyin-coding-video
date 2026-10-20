@@ -17,3 +17,6 @@ tools/
 .github/workflows/
 
 research/ref_bgm.mp3
+
+projects/nihilism/*.wav
+projects/nihilism/voice/

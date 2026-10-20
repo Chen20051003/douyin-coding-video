@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>VIBE 知识大赏 · 虚无主义</title>
+<style>
+  @font-face { font-family: "Noto Sans SC"; src: url("../../assets/fonts/NotoSansSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: "Noto Serif SC"; src: url("../../assets/fonts/NotoSerifSC-VF.ttf"); font-weight: 100 900; font-display: block; }
+  html, body { margin: 0; padding: 0; background: #05050a; overflow: hidden; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="../../engine/hf.js"></script>
+<script src="timing.js"></script>
+<script>
+const W = 1920, H = 1080, DUR = window.TIMING.duration;
+const L = window.TIMING.lines;
+const BEAT = 60 / 112;
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+const GOLD = "#E8C07A", INK = "#F2F0FA", MUTED = "#8A8AA0", CYAN = "#7FD6FF", RED = "#B53A2F";
+const SERIF = HF.SERIF, SANS = HF.SANS, MONO = HF.MONO;
+
+const S = {
+  title: [0, 4.0],
+  hook: [4.0, L[2].start],
+  definition: [L[2].start, L[4].start],
+  history: [L[4].start, L[7].start],
+  collapse: [L[7].start, L[9].start],
+  active: [L[9].start, L[12].start],
+  philosophers: [L[12].start, L[16].start],
+  reversal: [L[16].start, L[18].start],
+  outro: [L[18].start, DUR]
+};
+
+const CHAPTERS = {
+  title: "00 · 问题 / THE QUESTION",
+  hook: "00 · 问题 / THE QUESTION",
+  definition: "01 · 定义 / DEFINITION",
+  history: "02 · 历史 / 1882",
+  collapse: "03 · 废墟 / RUINS",
+  active: "04 · 选择 / CHOICE",
+  philosophers: "05 · 荒诞 / THE ABSURD",
+  reversal: "06 · 空地 / OPEN GROUND",
+  outro: "07 · 自由 / FREEDOM"
+};
+
+const STARS = HF.stars(180, 88);
+const DUST = (() => {
+  const r = HF.rng(1919);
+  const a = [];
+  for (let i = 0; i < 70; i++) a.push({ x: r() * W, y: r() * H, s: .6 + r() * 2.2, v: 3 + r() * 12, p: r() * 6.28 });
+  return a;
+})();
+const BOKEH = (() => {
+  const r = HF.rng(2026);
+  const a = [];
+  for (let i = 0; i < 22; i++) a.push({ x: r() * W, y: r() * H, r: 24 + r() * 70, vy: -1 - r() * 4, p: r() * 6.28 });
+  return a;
+})();
+const BLOCKS = [
+  { label: "宗教", en: "RELIGION", x: 720, y: 250, w: 300, h: 90, rot: -0.05 },
+  { label: "道德", en: "MORALITY", x: 735, y: 350, w: 300, h: 90, rot: 0.04 },
+  { label: "理性", en: "REASON", x: 705, y: 450, w: 300, h: 90, rot: -0.03 },
+  { label: "进步", en: "PROGRESS", x: 730, y: 550, w: 300, h: 90, rot: 0.06 }
+];
+
+function sceneAt(t) {
+  for (const k of Object.keys(S)) if (t >= S[k][0] && t < S[k][1]) return k;
+  return "outro";
+}
+function pulse(t) { return Math.exp(-((t / BEAT) % 1) * 6); }
+function cameraFor(t, s) {
+  const span = Math.max(0.01, S[s][1] - S[s][0]);
+  const p = HF.clamp((t - S[s][0]) / span, 0, 1);
+  return { zoom: 1.04 + 0.055 * p + 0.007 * pulse(t), x: Math.sin(t * 0.23) * 9, y: Math.cos(t * 0.18) * 7 };
+}
+const GHOST = { title: "虚", hook: "?", definition: "无", history: "神", collapse: "塌", active: "择", philosophers: "荒", reversal: "造", outro: "人" };
+function drawGhost(t, s) {
+  const w = GHOST[s]; if (!w) return;
+  const u = t - S[s][0], d = S[s][1] - S[s][0];
+  const a = 0.04 * HF.smoothstep(0, .8, u) * (1 - HF.smoothstep(d - .8, d, u));
+  ctx.save(); ctx.globalAlpha = a;
+  HF.text(ctx, w, W / 2, 610, { size: 780, weight: 900, color: GOLD, align: "center", family: SERIF });
+  ctx.restore();
+}
+function drawBG(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#05050A"); g.addColorStop(.55, "#0A0C16"); g.addColorStop(1, "#05050A");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W / 2, 520, 40, W / 2, 520, 900);
+  glow.addColorStop(0, "rgba(50,60,100,0.20)"); glow.addColorStop(.6, "rgba(20,30,60,0.08)"); glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+  HF.drawStars(ctx, STARS, t, .40);
+  for (const d of DUST) {
+    const y = ((d.y - t * d.v) % H + H) % H;
+    ctx.globalAlpha = .10 + .08 * Math.sin(t + d.p);
+    ctx.fillStyle = "#AFC0E8";
+    ctx.beginPath(); ctx.arc(d.x, y, d.s, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function drawBokeh(t) {
+  ctx.save(); ctx.globalCompositeOperation = "lighter";
+  for (const b of BOKEH) {
+    const y = ((b.y + t * b.vy) % (H + 160) + H + 160) % (H + 160) - 80;
+    const x = b.x + Math.sin(t * .2 + b.p) * 26;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, b.r);
+    g.addColorStop(0, "rgba(232,192,122,0.09)"); g.addColorStop(.55, "rgba(127,214,255,0.04)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.fillRect(x - b.r, y - b.r, b.r * 2, b.r * 2);
+  }
+  ctx.restore();
+}
+function drawWipe(t) {
+  const cuts = [4.0, S.hook[1], S.definition[1], S.history[1], S.collapse[1], S.active[1], S.philosophers[1], S.reversal[1]];
+  for (const c of cuts) {
+    const u = t - c; if (u < 0 || u > .5) continue;
+    const p = HF.easeInOutCubic(u / .5), x = HF.lerp(-80, W + 80, p);
+    const g = ctx.createLinearGradient(x - 120, 0, x + 20, 0);
+    g.addColorStop(0, "rgba(232,192,122,0)"); g.addColorStop(.75, "rgba(232,192,122,0.07)"); g.addColorStop(1, "rgba(232,192,122,0.42)");
+    ctx.fillStyle = g; ctx.fillRect(x - 120, 0, 140, H);
+    ctx.fillStyle = "rgba(232,192,122,0.55)"; ctx.fillRect(x, 0, 2, H);
+  }
+}
+function drawFlash(t) {
+  const cuts = [4.0, S.hook[1], S.definition[1], S.history[1], S.collapse[1], S.active[1], S.philosophers[1], S.reversal[1]];
+  for (const c of cuts) {
+    const u = t - c;
+    if (u >= 0 && u < .14) { ctx.save(); ctx.globalAlpha = .06 * (1 - u / .14); ctx.fillStyle = GOLD; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+  }
+}
+
+function drawTitleCard(t) {
+  const u = t, a = HF.smoothstep(.1, .9, u) * (1 - HF.smoothstep(3.7, 4.0, u));
+  ctx.save(); ctx.globalAlpha = a;
+  HF.text(ctx, "VIBE 知识大赏", W / 2, 360, { size: 18, color: GOLD, align: "center", letterSpacing: 12 });
+  const grow = HF.easeOutCubic(HF.clamp(u / 1.2, 0, 1));
+  ctx.strokeStyle = "rgba(232,192,122,0.45)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W / 2 - 240 * grow, 394); ctx.lineTo(W / 2 + 240 * grow, 394); ctx.stroke();
+  HF.text(ctx, "《虚无主义》", W / 2, 560, { size: 118, weight: 900, color: GOLD, align: "center", family: SERIF });
+  HF.text(ctx, "如果一切终将消失，为什么还要认真活？", W / 2, 650, { size: 36, weight: 500, color: INK, align: "center" });
+  HF.text(ctx, "N I H I L I S M", W / 2, 708, { size: 24, color: MUTED, align: "center", letterSpacing: 8, family: SERIF });
+  ctx.globalAlpha = a * .55;
+  HF.text(ctx, "A FILM ABOUT MEANING", W / 2, 860, { size: 13, color: MUTED, align: "center", letterSpacing: 5 });
+  ctx.restore();
+}
+
+function drawHook(t) {
+  const u = t - 4.0, a = HF.smoothstep(0, .6, u);
+  ctx.save(); ctx.globalAlpha = a;
+  HF.text(ctx, "?", W / 2, 600, { size: 360, weight: 900, color: "rgba(232,192,122,0.16)", align: "center", family: SERIF });
+  const n = 18;
+  for (let i = 0; i < n; i++) {
+    const x = 300 + i * 75;
+    const y = 260 + ((u * 35 + i * 37) % 420);
+    ctx.globalAlpha = a * .18;
+    ctx.fillStyle = i % 3 ? "#9FB0D8" : GOLD;
+    ctx.beginPath(); ctx.arc(x, y, 1.5 + (i % 3), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = a;
+  HF.text(ctx, "一切终将消失", W / 2, 790, { size: 30, color: "rgba(242,240,250,0.6)", align: "center", letterSpacing: 4 });
+  ctx.restore();
+}
+
+function drawPaper(x, y, w, h, rot) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 30;
+  HF.panel(ctx, 0, 0, w, h, 4, "#E8E2D4", "rgba(0,0,0,0.2)", 1);
+  ctx.shadowBlur = 0;
+  HF.text(ctx, "BERLINER TAGEBLATT", 24, 40, { size: 12, color: "#3A342C", letterSpacing: 2, family: MONO });
+  ctx.strokeStyle = "rgba(58,52,44,0.4)"; ctx.beginPath(); ctx.moveTo(24, 54); ctx.lineTo(w - 24, 54); ctx.stroke();
+  HF.text(ctx, "GOTT", 24, 150, { size: 78, weight: 900, color: "#211D18", family: SERIF, letterSpacing: 2 });
+  HF.text(ctx, "IST TOT.", 24, 230, { size: 78, weight: 900, color: "#211D18", family: SERIF, letterSpacing: 2 });
+  HF.text(ctx, "上帝死了", 24, 290, { size: 30, weight: 700, color: "#211D18" });
+  HF.text(ctx, "1882 · DIE FRÖHLICHE WISSENSCHAFT", 24, 330, { size: 11, color: "#5A5044", family: MONO });
+  ctx.strokeStyle = "#B53A2F"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(w - 92, h - 86, 48, 0, Math.PI * 2); ctx.stroke();
+  HF.text(ctx, "上帝死了", w - 92, h - 78, { size: 16, weight: 700, color: "#B53A2F", align: "center" });
+  ctx.restore();
+}
+
+function drawDefinition(t) {
+  const u = t - S.definition[0], a = HF.smoothstep(0, .6, u);
+  ctx.save(); ctx.globalAlpha = a;
+  HF.panel(ctx, 260, 260, 1400, 420, 12, "rgba(8,9,20,0.9)", "rgba(201,169,106,0.28)", 1);
+  HF.text(ctx, "虚无主义", 320, 380, { size: 86, weight: 900, color: GOLD, family: SERIF });
+  HF.text(ctx, "NIHILISM  /ˈnaɪ.ə.lɪ.zəm/", 330, 430, { size: 18, color: MUTED, family: MONO, letterSpacing: 2 });
+  HF.text(ctx, "世界没有内置的意义、目的或绝对价值。", 330, 520, { size: 30, color: INK });
+  HF.text(ctx, "THE WORLD HAS NO BUILT-IN MEANING, PURPOSE, OR ABSOLUTE VALUE.", 330, 566, { size: 13, color: MUTED, family: MONO, letterSpacing: 1.5 });
+  const words = ["意义", "目的", "答案"];
+  words.forEach((w, i) => {
+    const x = 330 + i * 260;
+    HF.text(ctx, w, x, 640, { size: 34, color: "rgba(242,240,250,0.35)" });
+    ctx.strokeStyle = "rgba(181,58,47,0.8)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x - 6, 626); ctx.lineTo(x + 96, 626); ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawHistory(t) {
+  const u = t - S.history[0], a = HF.smoothstep(0, .6, u);
+  ctx.save(); ctx.globalAlpha = a;
+  drawPaper(220, 190, 620, 500, -0.03);
+  // silhouette
+  ctx.save(); ctx.translate(1390, 520);
+  ctx.fillStyle = "rgba(20,22,34,0.95)"; ctx.strokeStyle = "rgba(201,169,106,0.35)"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(0, -40, 105, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-170, 210); ctx.quadraticCurveTo(0, 40, 170, 210); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "rgba(242,240,250,0.75)";
+  ctx.fillRect(-58, -28, 116, 10); // brows
+  ctx.fillRect(-12, 8, 24, 10);    // nose
+  ctx.fillRect(-48, 46, 96, 9);    // moustache
+  ctx.restore();
+  HF.text(ctx, "FRIEDRICH NIETZSCHE", 1390, 800, { size: 14, color: GOLD, align: "center", letterSpacing: 3, family: MONO });
+  HF.text(ctx, "1844 — 1900", 1390, 828, { size: 12, color: MUTED, align: "center", family: MONO });
+  ctx.restore();
+}
+
+function drawCollapse(t) {
+  const u = t - S.collapse[0], a = HF.smoothstep(0, .6, u);
+  ctx.save(); ctx.globalAlpha = a;
+  BLOCKS.forEach((b, i) => {
+    const fall = HF.clamp((u - 1.0 - i * .28) / 1.1, 0, 1);
+    ctx.save();
+    ctx.translate(b.x + b.w / 2 + fall * (i - 1.5) * 135, b.y + b.h / 2 + fall * (140 + i * 40));
+    ctx.rotate(b.rot + fall * (i % 2 ? .28 : -.24));
+    HF.panel(ctx, -b.w / 2, -b.h / 2, b.w, b.h, 6, `rgba(30,34,50,${.9 - .35 * fall})`, "rgba(201,169,106,0.28)", 1);
+    const la = 1 - HF.clamp((fall - .1) / .3, 0, 1);
+    HF.text(ctx, b.label, 0, 8, { size: 34, weight: 700, color: INK, align: "center", alpha: a * la });
+    HF.text(ctx, b.en, 0, 34, { size: 10, color: MUTED, align: "center", letterSpacing: 3, family: MONO, alpha: a * la });
+    ctx.restore();
+  });
+  for (let i = 0; i < 30; i++) {
+    const x = 620 + ((u * 40 + i * 53) % 680);
+    const y = 250 + ((u * 55 + i * 37) % 500);
+    ctx.globalAlpha = a * .20;
+    ctx.fillStyle = "#B9A88A"; ctx.fillRect(x, y, 2, 2);
+  }
+  ctx.globalAlpha = a;
+  HF.text(ctx, "被动虚无主义", 960, 810, { size: 22, color: "rgba(242,240,250,0.55)", align: "center", letterSpacing: 4 });
+  ctx.restore();
+}
+
+function drawActive(t) {
+  const u = t - S.active[0], a = HF.smoothstep(0, .6, u);
+  ctx.save(); ctx.globalAlpha = a;
+  const doors = [
+    { x: 430, label: "被动", en: "PASSIVE", col: "rgba(140,145,160,0.35)" },
+    { x: 1240, label: "主动", en: "ACTIVE", col: "rgba(232,192,122,0.75)" }
+  ];
+  doors.forEach((d) => {
+    HF.panel(ctx, d.x, 330, 300, 430, 6, "rgba(8,9,18,0.7)", d.col, 1.5);
+    const gg = ctx.createLinearGradient(d.x, 330, d.x, 760);
+    gg.addColorStop(0, d.col.replace("0.75", "0.16").replace("0.35", "0.06"));
+    gg.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = gg; ctx.fillRect(d.x + 4, 334, 292, 422);
+    HF.text(ctx, d.label, d.x + 150, 790, { size: 30, weight: 700, color: d.col.replace("0.75", "1").replace("0.35", "0.7"), align: "center" });
+    HF.text(ctx, d.en, d.x + 150, 820, { size: 11, color: MUTED, align: "center", letterSpacing: 4, family: MONO });
+  });
+  const p = HF.easeInOutCubic(HF.clamp((u - 1.0) / 4.0, 0, 1));
+  const x = HF.lerp(760, 1390, p), y = 650 - Math.sin(p * Math.PI) * 40;
+  ctx.beginPath(); ctx.arc(x, y - 40, 15, 0, Math.PI * 2); ctx.fillStyle = GOLD; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, y + 6, 26, 48, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(232,192,122,0.75)"; ctx.fill();
+  HF.text(ctx, "重估一切价值", 980, 840, { size: 26, color: "rgba(242,240,250,0.65)", align: "center" });
+  ctx.restore();
+}
+
+function drawPhilosophers(t) {
+  const u = t - S.philosophers[0], a = HF.smoothstep(0, .6, u);
+  ctx.save(); ctx.globalAlpha = a;
+  HF.panel(ctx, 160, 230, 720, 300, 10, "rgba(8,9,20,0.9)", "rgba(201,169,106,0.25)", 1);
+  HF.text(ctx, "让-保罗·萨特", 210, 300, { size: 20, color: GOLD, letterSpacing: 2 });
+  HF.text(ctx, "存在先于本质", 210, 390, { size: 52, weight: 900, color: INK, family: SERIF });
+  HF.text(ctx, "EXISTENCE PRECEDES ESSENCE", 210, 440, { size: 13, color: MUTED, family: MONO, letterSpacing: 2 });
+  HF.text(ctx, "你不是先有剧本，才被生下来。", 210, 492, { size: 20, color: "rgba(242,240,250,0.65)" });
+
+  HF.panel(ctx, 1040, 230, 720, 300, 10, "rgba(8,9,20,0.9)", "rgba(127,214,255,0.22)", 1);
+  HF.text(ctx, "阿尔贝·加缪", 1090, 300, { size: 20, color: CYAN, letterSpacing: 2 });
+  HF.text(ctx, "世界是荒诞的", 1090, 390, { size: 52, weight: 900, color: INK, family: SERIF });
+  HF.text(ctx, "THE ABSURD", 1090, 440, { size: 13, color: MUTED, family: MONO, letterSpacing: 2 });
+  HF.text(ctx, "但不必投降。", 1090, 492, { size: 20, color: "rgba(242,240,250,0.65)" });
+
+  // Sisyphus slope + boulder
+  ctx.strokeStyle = "rgba(201,169,106,0.30)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(300, 850); ctx.lineTo(1620, 620); ctx.stroke();
+  const p = (u * .09) % 1;
+  const bx = HF.lerp(340, 1580, p), by = HF.lerp(838, 632, p);
+  ctx.beginPath(); ctx.arc(bx, by, 30, 0, Math.PI * 2); ctx.fillStyle = "rgba(160,160,175,0.9)"; ctx.fill();
+  ctx.strokeStyle = "rgba(232,192,122,0.6)"; ctx.stroke();
+  ctx.restore();
+}
+
+function drawReversal(t) {
+  const u = t - S.reversal[0], a = HF.smoothstep(0, .6, u);
+  ctx.save(); ctx.globalAlpha = a;
+  const p = HF.easeInOutCubic(HF.clamp(u / 5.0, 0, 1));
+  ctx.strokeStyle = "rgba(201,169,106,0.10)"; ctx.lineWidth = 1;
+  for (let x = 240; x <= 1680; x += 120) { ctx.beginPath(); ctx.moveTo(x, 280); ctx.lineTo(x, 760); ctx.stroke(); }
+  for (let y = 280; y <= 760; y += 120) { ctx.beginPath(); ctx.moveTo(240, y); ctx.lineTo(1680, y); ctx.stroke(); }
+  ctx.strokeStyle = `rgba(232,192,122,${.35 + .55 * p})`; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(240, 700); ctx.lineTo(240 + 1440 * p, 700); ctx.stroke();
+  HF.text(ctx, "空地", W / 2, 420, { size: 110, weight: 900, color: "rgba(242,240,250,0.14)", align: "center", family: SERIF });
+  ctx.restore();
+}
+
+function drawOutro(t) {
+  const u = t - S.outro[0], a = HF.smoothstep(0, .8, u);
+  ctx.save(); ctx.globalAlpha = a;
+  HF.text(ctx, "知道没有答案", W / 2, 430, { size: 46, color: MUTED, align: "center", letterSpacing: 4 });
+  HF.text(ctx, "仍然选择", W / 2, 570, { size: 108, weight: 900, color: GOLD, align: "center", family: SERIF });
+  HF.text(ctx, "STILL, YOU CHOOSE.", W / 2, 640, { size: 18, color: MUTED, align: "center", letterSpacing: 6 });
+  ctx.strokeStyle = "rgba(232,192,122,0.35)"; ctx.beginPath(); ctx.moveTo(W / 2 - 220, 700); ctx.lineTo(W / 2 + 220, 700); ctx.stroke();
+  HF.text(ctx, "致每一个，在深夜问过为什么的人。", W / 2, 780, { size: 22, color: "rgba(242,240,250,0.65)", align: "center" });
+  HF.text(ctx, "VIBE 知识大赏 ·《虚无主义》", W / 2, 840, { size: 18, color: "rgba(242,240,250,0.45)", align: "center", letterSpacing: 2 });
+  HF.text(ctx, "本片由代码生成 · 配音由 AI 合成 · BGM：@freedomkey 创作的原声", W / 2, 880, { size: 12, color: "rgba(138,138,160,0.65)", align: "center" });
+  ctx.restore();
+}
+
+function activeLine(t) {
+  for (const l of L) if (t >= l.start - .05 && t <= l.end + .25) return l;
+  return null;
+}
+
+function render(t) {
+  HF.base(ctx, t, DUR);
+  drawBG(t);
+  const s = sceneAt(t), cam = cameraFor(t, s);
+  ctx.save(); ctx.translate(W / 2 + cam.x, H / 2 + cam.y); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-W / 2, -H / 2);
+  drawGhost(t, s);
+  if (s === "title") drawTitleCard(t);
+  else if (s === "hook") drawHook(t);
+  else if (s === "definition") drawDefinition(t);
+  else if (s === "history") drawHistory(t);
+  else if (s === "collapse") drawCollapse(t);
+  else if (s === "active") drawActive(t);
+  else if (s === "philosophers") drawPhilosophers(t);
+  else if (s === "reversal") drawReversal(t);
+  else drawOutro(t);
+  ctx.restore();
+
+  drawBokeh(t); drawWipe(t); drawFlash(t);
+  HF.header(ctx, "@VIBE 知识大赏", CHAPTERS[s] || "", "A FILM ABOUT MEANING", W);
+  const line = activeLine(t);
+  if (line && t < L[19].start) HF.subtitle(ctx, line.cn, line.en, t, line.start, line.end + .25, W, H);
+  HF.finishFrame(ctx, t, DUR);
+}
+
+window.render = render;
+window.__ready = true;
+</script>
+</body>
+</html>

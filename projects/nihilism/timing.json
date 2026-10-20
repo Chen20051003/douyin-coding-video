@@ -1,0 +1,210 @@
+{
+  "title": "虚无主义",
+  "voice": "zh-CN-XiaoxiaoNeural",
+  "rate": "-3%",
+  "pitch": "+0Hz",
+  "duration": 83.066,
+  "bpm": 120,
+  "lines": [
+    {
+      "i": 0,
+      "cn": "如果一切终将消失，为什么还要认真活？",
+      "en": "If everything will vanish, why live seriously?",
+      "scene": "hook",
+      "start": 4.0,
+      "end": 8.152,
+      "duration": 4.152,
+      "file": "voice/line_00.wav"
+    },
+    {
+      "i": 1,
+      "cn": "这不是矫情，是虚无主义。",
+      "en": "This is not moodiness. It is nihilism.",
+      "scene": "hook",
+      "start": 8.602,
+      "end": 11.65,
+      "duration": 3.048,
+      "file": "voice/line_01.wav"
+    },
+    {
+      "i": 2,
+      "cn": "它说：世界没有内置的意义。",
+      "en": "It says: the world has no built-in meaning.",
+      "scene": "definition",
+      "start": 12.1,
+      "end": 15.22,
+      "duration": 3.12,
+      "file": "voice/line_02.wav"
+    },
+    {
+      "i": 3,
+      "cn": "没有预设的目的，也没有标准答案。",
+      "en": "No preset purpose. No standard answer.",
+      "scene": "definition",
+      "start": 15.67,
+      "end": 19.174,
+      "duration": 3.504,
+      "file": "voice/line_03.wav"
+    },
+    {
+      "i": 4,
+      "cn": "1882 年，尼采写下「上帝死了」。",
+      "en": "In 1882, Nietzsche wrote: God is dead.",
+      "scene": "history",
+      "start": 19.874,
+      "end": 23.426,
+      "duration": 3.552,
+      "file": "voice/line_04.wav"
+    },
+    {
+      "i": 5,
+      "cn": "不是庆祝，是报警。",
+      "en": "Not a celebration. A warning.",
+      "scene": "history",
+      "start": 23.876,
+      "end": 26.396,
+      "duration": 2.52,
+      "file": "voice/line_05.wav"
+    },
+    {
+      "i": 6,
+      "cn": "旧的价值塌了，人站在废墟上。",
+      "en": "Old values collapsed. People stood in the ruins.",
+      "scene": "history",
+      "start": 26.846,
+      "end": 30.182,
+      "duration": 3.336,
+      "file": "voice/line_06.wav"
+    },
+    {
+      "i": 7,
+      "cn": "于是有人麻木，有人消费，有人随波逐流。",
+      "en": "Some went numb. Some consumed. Some drifted.",
+      "scene": "collapse",
+      "start": 30.632,
+      "end": 35.0,
+      "duration": 4.368,
+      "file": "voice/line_07.wav"
+    },
+    {
+      "i": 8,
+      "cn": "尼采叫它「被动虚无主义」。",
+      "en": "Nietzsche called it passive nihilism.",
+      "scene": "collapse",
+      "start": 35.45,
+      "end": 38.234,
+      "duration": 2.784,
+      "file": "voice/line_08.wav"
+    },
+    {
+      "i": 9,
+      "cn": "另一种，是「主动虚无主义」。",
+      "en": "The other is active nihilism.",
+      "scene": "active",
+      "start": 38.684,
+      "end": 41.684,
+      "duration": 3.0,
+      "file": "voice/line_09.wav"
+    },
+    {
+      "i": 10,
+      "cn": "先拆掉假的答案，再自己立新的价值。",
+      "en": "Tear down false answers, then create your own values.",
+      "scene": "active",
+      "start": 42.134,
+      "end": 46.166,
+      "duration": 4.032,
+      "file": "voice/line_10.wav"
+    },
+    {
+      "i": 11,
+      "cn": "萨特说：存在先于本质。",
+      "en": "Sartre said: existence precedes essence.",
+      "scene": "active",
+      "start": 46.616,
+      "end": 49.64,
+      "duration": 3.024,
+      "file": "voice/line_11.wav"
+    },
+    {
+      "i": 12,
+      "cn": "你不是先有剧本，才被生下来。",
+      "en": "You were not born with a script.",
+      "scene": "philosophers",
+      "start": 50.09,
+      "end": 53.33,
+      "duration": 3.24,
+      "file": "voice/line_12.wav"
+    },
+    {
+      "i": 13,
+      "cn": "你是在活的过程中，写下自己。",
+      "en": "You write yourself in the living.",
+      "scene": "philosophers",
+      "start": 53.78,
+      "end": 57.188,
+      "duration": 3.408,
+      "file": "voice/line_13.wav"
+    },
+    {
+      "i": 14,
+      "cn": "加缪说：世界是荒诞的，但不必投降。",
+      "en": "Camus said: the world is absurd, but do not surrender.",
+      "scene": "philosophers",
+      "start": 57.638,
+      "end": 61.958,
+      "duration": 4.32,
+      "file": "voice/line_14.wav"
+    },
+    {
+      "i": 15,
+      "cn": "像西西弗推石头，明知徒劳，仍然推。",
+      "en": "Like Sisyphus: knowing it is futile, still push.",
+      "scene": "philosophers",
+      "start": 62.408,
+      "end": 66.752,
+      "duration": 4.344,
+      "file": "voice/line_15.wav"
+    },
+    {
+      "i": 16,
+      "cn": "虚无不是终点，是一块空地。",
+      "en": "The void is not the end. It is open ground.",
+      "scene": "reversal",
+      "start": 67.202,
+      "end": 70.442,
+      "duration": 3.24,
+      "file": "voice/line_16.wav"
+    },
+    {
+      "i": 17,
+      "cn": "意义不是被找到的，是被做出来的。",
+      "en": "Meaning is not found. It is made.",
+      "scene": "reversal",
+      "start": 70.892,
+      "end": 74.444,
+      "duration": 3.552,
+      "file": "voice/line_17.wav"
+    },
+    {
+      "i": 18,
+      "cn": "知道没有答案，仍然选择。",
+      "en": "Knowing there is no answer, still choose.",
+      "scene": "outro",
+      "start": 75.244,
+      "end": 78.244,
+      "duration": 3.0,
+      "file": "voice/line_18.wav"
+    },
+    {
+      "i": 19,
+      "cn": "这，就是人的自由。",
+      "en": "This is human freedom.",
+      "scene": "outro",
+      "start": 78.694,
+      "end": 81.094,
+      "duration": 2.4,
+      "file": "voice/line_19.wav"
+    }
+  ]
+}

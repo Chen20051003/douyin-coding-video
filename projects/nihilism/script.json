@@ -1,0 +1,30 @@
+{
+  "title": "虚无主义",
+  "voice": "zh-CN-XiaoxiaoNeural",
+  "rate": "-3%",
+  "pitch": "+0Hz",
+  "intro": 4.0,
+  "outro": 4.0,
+  "lines": [
+    { "cn": "如果一切终将消失，为什么还要认真活？", "en": "If everything will vanish, why live seriously?", "scene": "hook" },
+    { "cn": "这不是矫情，是虚无主义。", "en": "This is not moodiness. It is nihilism.", "scene": "hook" },
+    { "cn": "它说：世界没有内置的意义。", "en": "It says: the world has no built-in meaning.", "scene": "definition" },
+    { "cn": "没有预设的目的，也没有标准答案。", "en": "No preset purpose. No standard answer.", "scene": "definition", "pause_after": 0.7 },
+    { "cn": "1882 年，尼采写下「上帝死了」。", "en": "In 1882, Nietzsche wrote: God is dead.", "scene": "history" },
+    { "cn": "不是庆祝，是报警。", "en": "Not a celebration. A warning.", "scene": "history" },
+    { "cn": "旧的价值塌了，人站在废墟上。", "en": "Old values collapsed. People stood in the ruins.", "scene": "history" },
+    { "cn": "于是有人麻木，有人消费，有人随波逐流。", "en": "Some went numb. Some consumed. Some drifted.", "scene": "collapse" },
+    { "cn": "尼采叫它「被动虚无主义」。", "en": "Nietzsche called it passive nihilism.", "scene": "collapse" },
+    { "cn": "另一种，是「主动虚无主义」。", "en": "The other is active nihilism.", "scene": "active" },
+    { "cn": "先拆掉假的答案，再自己立新的价值。", "en": "Tear down false answers, then create your own values.", "scene": "active" },
+    { "cn": "萨特说：存在先于本质。", "en": "Sartre said: existence precedes essence.", "scene": "active" },
+    { "cn": "你不是先有剧本，才被生下来。", "en": "You were not born with a script.", "scene": "philosophers" },
+    { "cn": "你是在活的过程中，写下自己。", "en": "You write yourself in the living.", "scene": "philosophers" },
+    { "cn": "加缪说：世界是荒诞的，但不必投降。", "en": "Camus said: the world is absurd, but do not surrender.", "scene": "philosophers" },
+    { "cn": "像西西弗推石头，明知徒劳，仍然推。", "en": "Like Sisyphus: knowing it is futile, still push.", "scene": "philosophers" },
+    { "cn": "虚无不是终点，是一块空地。", "en": "The void is not the end. It is open ground.", "scene": "reversal" },
+    { "cn": "意义不是被找到的，是被做出来的。", "en": "Meaning is not found. It is made.", "scene": "reversal", "pause_after": 0.8 },
+    { "cn": "知道没有答案，仍然选择。", "en": "Knowing there is no answer, still choose.", "scene": "outro" },
+    { "cn": "这，就是人的自由。", "en": "This is human freedom.", "scene": "outro" }
+  ]
+}
